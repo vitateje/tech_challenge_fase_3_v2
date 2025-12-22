@@ -1,0 +1,42 @@
+{
+  "name": "quimicai-backend",
+  "version": "1.0.0",
+  "description": "Backend API para plataforma de aprendizado de química com IA",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node src/test-llm.js",
+    "switch-llm": "node src/scripts/switch-llm.js",
+    "build": "echo 'No build step required for Node.js'",
+    "lint": "echo 'No linting configured'",
+    "deploy:prepare": "npm ci --only=production",
+    "deploy:start": "npm start"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@langchain/community": "^0.3.57",
+    "@langchain/core": "^0.3.79",
+    "@langchain/google-genai": "^0.2.18",
+    "@langchain/ollama": "^0.2.4",
+    "@langchain/openai": "^0.6.16",
+    "@langchain/pinecone": "^0.2.0",
+    "@openai/agents": "^0.1.9",
+    "@openai/agents-openai": "^0.1.9",
+    "@pinecone-database/pinecone": "^5.0.2",
+    "axios": "^1.4.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "langchain": "^0.3.36",
+    "mongoose": "^7.4.0",
+    "openai": "^4.104.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

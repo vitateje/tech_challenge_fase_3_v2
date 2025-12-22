@@ -1,0 +1,22 @@
+{
+  "name": "medical-assistant-frontend",
+  "version": "1.0.0",
+  "description": "Frontend Vue.js para assistente médico virtual com IA",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 3000",
+    "lint": "echo 'No linting configured'",
+    "deploy:build": "npm run build",
+    "deploy:serve": "npm run serve"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "vite": "^5.0.0"
+  }
+}
