@@ -127,5 +127,8 @@ Thumbs.db
 # Docker
 .dockerignore
 
-# Context folder
+# Context folder (treinamento/fine-tuning - não versionar)
 context/
+context-docs/
+
+# Nota: context-docs/ NÃO está ignorada - documentos de contexto devem ser versionados
