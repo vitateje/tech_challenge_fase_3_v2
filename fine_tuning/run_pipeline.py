@@ -1,27 +1,33 @@
 #!/usr/bin/env python3
 """
-Script principal para executar o pipeline completo de preparação de dados
+Script principal para executar o pipeline completo de preparação de dados e fine-tuning
 """
 
 import sys
+import argparse
 from pathlib import Path
-from data_processor import process_full_pipeline
-from validate_data import validate_dataset, print_validation_report
+
+# Adiciona diretório atual ao path para imports
+sys.path.append(str(Path(__file__).parent))
+
+from preprocessing.data_processor import process_full_pipeline
+from preprocessing.validate_data import validate_dataset, print_validation_report
+from preprocessing.format_dataset import format_medical_to_alpaca
 
 
-def main():
-    """Executa o pipeline completo: processamento + validação"""
+def run_preprocessing():
+    """Executa pipeline de pré-processamento: processamento + validação"""
     print("=" * 80)
-    print("PIPELINE DE PREPARAÇÃO DE DADOS MÉDICOS PARA FINE-TUNING")
+    print("PIPELINE DE PREPARAÇÃO DE DADOS MÉDICOS")
     print("=" * 80)
     print()
     
-    # Caminhos
-    input_file = '../context/pubmedqa-master/data/ori_pqal.json'
-    output_file = 'medical_tuning_data.json'
+    BASE_DIR = Path(__file__).parent
+    input_file = BASE_DIR.parent / 'context' / 'pubmedqa-master' / 'data' / 'ori_pqal.json'
+    output_file = BASE_DIR / 'medical_tuning_data.json'
     
     # Verifica arquivo de entrada
-    if not Path(input_file).exists():
+    if not input_file.exists():
         print(f"❌ Erro: Arquivo não encontrado: {input_file}")
         print("Por favor, verifique o caminho do arquivo.")
         sys.exit(1)
@@ -30,7 +36,7 @@ def main():
     print("📦 ETAPA 1: Processamento de Dados")
     print("-" * 80)
     try:
-        count = process_full_pipeline(input_file, output_file)
+        count = process_full_pipeline(str(input_file), str(output_file))
         print(f"✅ Processamento concluído: {count} entradas processadas")
     except Exception as e:
         print(f"❌ Erro durante o processamento: {e}")
@@ -42,7 +48,7 @@ def main():
     print("🔍 ETAPA 2: Validação dos Dados")
     print("-" * 80)
     try:
-        stats = validate_dataset(output_file)
+        stats = validate_dataset(str(output_file))
         print_validation_report(stats)
         
         if "error" in stats:
@@ -60,9 +66,86 @@ def main():
     
     print()
     print("=" * 80)
-    print("✅ PIPELINE CONCLUÍDO COM SUCESSO!")
+    print("✅ PRÉ-PROCESSAMENTO CONCLUÍDO COM SUCESSO!")
     print(f"📄 Dataset pronto em: {output_file}")
     print("=" * 80)
+    
+    return output_file
+
+
+def run_formatting():
+    """Formata dataset para formato Alpaca"""
+    print("=" * 80)
+    print("FORMATAÇÃO PARA FORMATO ALPACA")
+    print("=" * 80)
+    print()
+    
+    BASE_DIR = Path(__file__).parent
+    input_file = BASE_DIR / 'medical_tuning_data.json'
+    output_file = BASE_DIR / 'formatted_medical_dataset.json'
+    
+    if not input_file.exists():
+        print(f"❌ Erro: Dataset não encontrado: {input_file}")
+        print("Execute primeiro: python run_pipeline.py --preprocess")
+        sys.exit(1)
+    
+    try:
+        stats = format_medical_to_alpaca(str(input_file), str(output_file))
+        print()
+        print("=" * 80)
+        print("✅ FORMATAÇÃO CONCLUÍDA COM SUCESSO!")
+        print(f"📄 Dataset formatado em: {output_file}")
+        print("=" * 80)
+        return output_file
+    except Exception as e:
+        print(f"❌ Erro durante formatação: {e}")
+        sys.exit(1)
+
+
+def main():
+    """Função principal com argumentos de linha de comando"""
+    parser = argparse.ArgumentParser(
+        description="Pipeline completo de preparação e fine-tuning de dados médicos"
+    )
+    parser.add_argument(
+        "--preprocess",
+        action="store_true",
+        help="Executa pré-processamento (processamento + validação)"
+    )
+    parser.add_argument(
+        "--format",
+        action="store_true",
+        help="Formata dataset para formato Alpaca"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Executa todo o pipeline: pré-processamento + formatação"
+    )
+    
+    args = parser.parse_args()
+    
+    # Se nenhum argumento, executa tudo
+    if not any([args.preprocess, args.format, args.all]):
+        args.all = True
+    
+    if args.all or args.preprocess:
+        run_preprocessing()
+        print()
+    
+    if args.all or args.format:
+        run_formatting()
+    
+    if args.all:
+        print("\n" + "=" * 80)
+        print("✅ PIPELINE COMPLETO FINALIZADO!")
+        print("=" * 80)
+        print("\n📌 Próximos passos:")
+        print("   1. Revise o dataset formatado: formatted_medical_dataset.json")
+        print("   2. Execute o fine-tuning:")
+        print("      - Notebook: jupyter notebook training/finetuning_medical.ipynb")
+        print("      - Script: python training/finetuning_medical.py")
+        print("=" * 80)
 
 
 if __name__ == "__main__":

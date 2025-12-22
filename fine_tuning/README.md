@@ -1,15 +1,15 @@
-# 📋 Pré-Processamento de Dados Médicos para Fine-Tuning
+# 🏥 Fine-Tuning de Modelo LLM para Domínio Médico
 
-Este diretório contém o pipeline completo de **pré-processamento** de dados médicos para fine-tuning de modelos LLM (LLaMA, Falcon, Mistral, etc.) em domínio médico.
+Este diretório contém o pipeline completo de **pré-processamento e fine-tuning** de modelos LLM para tarefas de question-answering médico baseado em evidências científicas.
 
 ## 📖 Visão Geral
 
-O processo de pré-processamento transforma o dataset médico bruto (`ori_pqal.json`) do PubMedQA em um formato estruturado adequado para **Instruction Tuning**, garantindo:
+O pipeline completo transforma o dataset médico bruto (`ori_pqal.json`) do PubMedQA em um modelo LLM fine-tunado especializado em medicina, passando por:
 
-- ✅ **Anonimização** de dados sensíveis (conformidade LGPD/HIPAA)
-- ✅ **Formatação** em estrutura de instrução para modelos LLM
-- ✅ **Validação** de qualidade e integridade dos dados
-- ✅ **Enriquecimento** com termos técnicos médicos (MESH)
+1. **Pré-Processamento**: Anonimização, formatação e validação de dados
+2. **Formatação Alpaca**: Conversão para formato padrão de fine-tuning
+3. **Fine-Tuning**: Treinamento do modelo com LoRA (Low-Rank Adaptation)
+4. **Inferência**: Teste e uso do modelo treinado
 
 ---
 
@@ -17,70 +17,170 @@ O processo de pré-processamento transforma o dataset médico bruto (`ori_pqal.j
 
 ```
 fine_tuning/
-├── prepare-medical-data.ipynb    # Notebook Jupyter com pipeline completo
-├── data_processor.py              # Script Python modular para processamento
-├── validate_data.py               # Script de validação de dados
-├── run_pipeline.py                # Pipeline completo (processamento + validação)
-├── medical_tuning_data.json       # Dataset processado (gerado após execução)
-└── README.md                      # Este arquivo
+├── preprocessing/                    # Módulo de pré-processamento
+│   ├── __init__.py
+│   ├── data_processor.py            # Processamento de dados médicos
+│   ├── validate_data.py             # Validação de dados processados
+│   └── format_dataset.py            # Formatação para Alpaca
+├── training/                        # Módulo de treinamento
+│   ├── __init__.py
+│   ├── finetuning_medical.py        # Script Python de fine-tuning
+│   ├── finetuning_medical.ipynb     # Notebook de fine-tuning
+│   └── model_config.py              # Configurações centralizadas
+├── inference/                       # Módulo de inferência
+│   └── test_model.py                # Teste do modelo treinado
+├── utils/                           # Utilitários
+│   ├── __init__.py
+│   └── prompts.py                   # Templates de prompts
+├── prepare-medical-data.ipynb       # Notebook de pré-processamento
+├── run_pipeline.py                  # Pipeline completo
+├── medical_tuning_data.json         # Dataset processado (gerado)
+├── formatted_medical_dataset.json   # Dataset formatado Alpaca (gerado)
+└── README.md                        # Este arquivo
 ```
 
 ---
 
-## 🔄 Pipeline de Pré-Processamento
+## 🚀 Guia Rápido
 
-O pipeline é composto por **6 etapas sequenciais**:
-
-### Etapa 0: Importação de Bibliotecas
-- Importa `json`, `re` e `Path` necessários para o processamento
-
-### Etapa 1: Carregamento do Dataset
-- Lê o arquivo `ori_pqal.json` do PubMedQA
-- Estrutura: `{id_artigo: {QUESTION, CONTEXTS, LONG_ANSWER, MESHES, ...}}`
-- Valida estrutura e exibe estatísticas iniciais
-
-### Etapa 2: Anonimização de Dados Sensíveis
-- Remove padrões que possam identificar pacientes:
-  - **Datas**: `15/03/2024` → `[DATA]`
-  - **IDs de pacientes**: `ID: 12345` → `ID: [PACIENTE_ID]`
-  - **Telefones**: `11987654321` → `[TELEFONE]`
-  - **Emails**: `email@hospital.com` → `[EMAIL]`
-
-### Etapa 3: Formatação para Instruction Tuning
-- Transforma dados brutos em formato de instrução
-- Estrutura do prompt:
-  ```
-  INSTRUÇÃO MÉDICA: Responda à pergunta baseando-se nos contextos fornecidos.
-  [|Contexto|] {contextos anonimizados} [|eContexto|]
-  [|Termos|] {termos MESH} [|eTermos|]
-  [|Pergunta|] {pergunta} [|ePergunta|]
-  [|Resposta|] {resposta anonimizada} [|eResposta|]
-  ```
-
-### Etapa 4: Processamento Completo
-- Processa todas as entradas do dataset
-- Aplica anonimização e formatação
-- Tratamento de erros robusto
-
-### Etapa 5: Salvamento do Dataset
-- Salva dados processados em `medical_tuning_data.json`
-- Formato JSON com indentação para legibilidade
-
-### Etapa 6: Verificação Final
-- Visualiza amostra dos dados processados
-- Valida formato e qualidade
-
----
-
-## 🚀 Como Usar
-
-### Opção 1: Notebook Jupyter (Recomendado para Exploração)
-
-Ideal para entender o processo passo a passo e fazer ajustes:
+### Pipeline Completo (Recomendado)
 
 ```bash
 cd fine_tuning
+
+# 1. Pré-processamento + Formatação
+python run_pipeline.py --all
+
+# 2. Fine-Tuning (escolha uma opção)
+# Opção A: Notebook (recomendado para exploração)
+jupyter notebook training/finetuning_medical.ipynb
+
+# Opção B: Script Python
+python training/finetuning_medical.py
+
+# 3. Teste do Modelo
+python inference/test_model.py --model_path lora_model_medical
+```
+
+---
+
+## 📋 Parte 1: Pré-Processamento
+
+### Objetivos
+
+- ✅ **Anonimização** de dados sensíveis (conformidade LGPD/HIPAA)
+- ✅ **Formatação** em estrutura de instrução para modelos LLM
+- ✅ **Validação** de qualidade e integridade dos dados
+- ✅ **Enriquecimento** com termos técnicos médicos (MESH)
+
+### Pipeline de Pré-Processamento
+
+O pipeline é composto por **6 etapas sequenciais**:
+
+1. **Importação de Bibliotecas**: `json`, `re`, `Path`
+2. **Carregamento do Dataset**: Lê `ori_pqal.json` do PubMedQA
+3. **Anonimização**: Remove dados sensíveis (datas, IDs, telefones, emails)
+4. **Formatação**: Transforma em formato de instrução com delimitadores
+5. **Processamento Completo**: Aplica a todas as entradas
+6. **Salvamento**: Gera `medical_tuning_data.json`
+
+### Como Usar
+
+#### Opção 1: Pipeline Completo
+
+```bash
+python run_pipeline.py --all
+```
+
+Executa: pré-processamento → validação → formatação Alpaca
+
+#### Opção 2: Notebook Jupyter
+
+```bash
 jupyter notebook prepare-medical-data.ipynb
+```
+
+Execute as células sequencialmente.
+
+#### Opção 3: Scripts Individuais
+
+```bash
+# Apenas pré-processamento
+python preprocessing/data_processor.py
+
+# Apenas validação
+python preprocessing/validate_data.py
+
+# Apenas formatação Alpaca
+python preprocessing/format_dataset.py
+```
+
+### Formato dos Dados
+
+**Entrada (ori_pqal.json):**
+```json
+{
+  "21645374": {
+    "QUESTION": "Do mitochondria play a role in remodelling plant leaves?",
+    "CONTEXTS": ["Programmed cell death (PCD) is..."],
+    "LONG_ANSWER": "Results depicted mitochondrial dynamics...",
+    "MESHES": ["Mitochondria", "Apoptosis"]
+  }
+}
+```
+
+**Saída Intermediária (medical_tuning_data.json):**
+```json
+[
+  {
+    "id": "21645374",
+    "input": "INSTRUÇÃO MÉDICA: ...\n[|Contexto|] ... [|eContexto|]\n[|Pergunta|] ... [|ePergunta|]\n[|Resposta|] ... [|eResposta|]"
+  }
+]
+```
+
+**Saída Final (formatted_medical_dataset.json):**
+```json
+{
+  "instruction": ["Responda à pergunta baseando-se nos contextos..."],
+  "input": ["Contexto: ...\nPergunta: ..."],
+  "output": ["Results depicted mitochondrial dynamics..."]
+}
+```
+
+---
+
+## 🎯 Parte 2: Fine-Tuning
+
+### Requisitos
+
+- **GPU**: Mínimo 8GB VRAM (recomendado 16GB+)
+- **CUDA**: Instalado e configurado
+- **Bibliotecas**:
+  ```bash
+  pip install 'unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git'
+  pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
+  pip install transformers datasets
+  ```
+
+### Pipeline de Fine-Tuning
+
+1. **Carregamento do Dataset**: Lê `formatted_medical_dataset.json`
+2. **Carregamento do Modelo**: Modelo base pré-quantizado (Unsloth)
+3. **Configuração LoRA**: Adiciona adaptadores LoRA ao modelo
+4. **Formatação de Prompts**: Aplica template Alpaca médico
+5. **Preparação do Dataset**: Formata todos os exemplos
+6. **Configuração do Trainer**: SFTTrainer com hiperparâmetros
+7. **Treinamento**: Executa fine-tuning
+8. **Salvamento**: Salva adaptadores LoRA treinados
+9. **Teste**: Valida qualidade do modelo
+
+### Como Usar
+
+#### Opção 1: Notebook Jupyter (Recomendado)
+
+```bash
+jupyter notebook training/finetuning_medical.ipynb
 ```
 
 **Vantagens:**
@@ -89,77 +189,116 @@ jupyter notebook prepare-medical-data.ipynb
 - Comentários detalhados em cada célula
 
 **Ordem de execução:**
-1. Execute as células **sequencialmente** (de cima para baixo)
-2. Aguarde o processamento completo
-3. Verifique os resultados na última célula
+1. Execute as células sequencialmente (de cima para baixo)
+2. Aguarde o treinamento (pode levar horas)
+3. Verifique os resultados
 
-### Opção 2: Script Python Individual
-
-Para processar apenas os dados:
+#### Opção 2: Script Python
 
 ```bash
-cd fine_tuning
-python data_processor.py
-```
-
-**Saída:** `medical_tuning_data.json`
-
-### Opção 3: Pipeline Completo (Recomendado para Produção)
-
-Executa processamento + validação automaticamente:
-
-```bash
-cd fine_tuning
-python run_pipeline.py
+python training/finetuning_medical.py
 ```
 
 **Vantagens:**
-- Processamento e validação em uma única execução
-- Relatório completo de estatísticas
-- Verificação automática de erros
+- Execução automatizada
+- Melhor para produção
+- Logs detalhados
 
-### Opção 4: Validação Separada
+### Configurações
 
-Para validar dados já processados:
+As configurações estão centralizadas em `training/model_config.py`:
 
-```bash
-cd fine_tuning
-python validate_data.py
-```
+**Modelo:**
+- Padrão: `unsloth/llama-3-8b-bnb-4bit`
+- Outros disponíveis: Mistral, Phi-3, Gemma
 
-**Saída:** Relatório detalhado com estatísticas e validações
+**LoRA:**
+- Rank: 16
+- Alpha: 16
+- Dropout: 0
+
+**Treinamento:**
+- Learning rate: 2e-4
+- Max steps: 100
+- Batch size: 2 (por dispositivo)
+- Gradient accumulation: 4
+
+**Ajustar configurações:**
+Edite `training/model_config.py` antes de executar o fine-tuning.
+
+### Hiperparâmetros Recomendados
+
+| Parâmetro | Valor Recomendado | Descrição |
+|-----------|-------------------|-----------|
+| Learning Rate | 1e-4 a 5e-4 | Taxa de aprendizado |
+| LoRA Rank | 8-64 | Capacidade do adaptador |
+| Max Steps | 50-200 | Número de steps de treinamento |
+| Batch Size | 2-8 | Depende da GPU |
+| Gradient Accumulation | 4-16 | Simula batch maior |
 
 ---
 
-## 📊 Formato dos Dados
+## 🧪 Parte 3: Teste e Inferência
 
-### Entrada (ori_pqal.json)
+### Testar Modelo Treinado
 
-```json
-{
-  "21645374": {
-    "QUESTION": "Do mitochondria play a role in remodelling lace plant leaves?",
-    "CONTEXTS": [
-      "Programmed cell death (PCD) is the regulated death...",
-      "The following paper elucidates the role..."
-    ],
-    "LONG_ANSWER": "Results depicted mitochondrial dynamics...",
-    "MESHES": ["Mitochondria", "Apoptosis", "Cell Differentiation"],
-    "YEAR": "2011"
-  }
-}
+```bash
+# Modo exemplos (testa com exemplos pré-definidos)
+python inference/test_model.py --model_path lora_model_medical --mode examples
+
+# Modo interativo (perguntas customizadas)
+python inference/test_model.py --model_path lora_model_medical --mode interactive
 ```
 
-### Saída (medical_tuning_data.json)
+### Exemplo de Uso Programático
 
-```json
-[
-  {
-    "id": "21645374",
-    "input": "INSTRUÇÃO MÉDICA: Responda à pergunta baseando-se nos contextos fornecidos.\n[|Contexto|] Programmed cell death (PCD) is the regulated death... [|eContexto|]\n[|Termos|] Mitochondria, Apoptosis, Cell Differentiation [|eTermos|]\n[|Pergunta|] Do mitochondria play a role in remodelling lace plant leaves? [|ePergunta|]\n\n[|Resposta|] Results depicted mitochondrial dynamics... [|eResposta|]"
-  }
-]
+```python
+from unsloth import FastLanguageModel
+from utils.prompts import get_medical_alpaca_prompt, get_instruction_only
+
+# Carrega modelo
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name="lora_model_medical",
+    max_seq_length=2048,
+    load_in_4bit=True,
+)
+FastLanguageModel.for_inference(model)
+
+# Prepara prompt
+instruction = get_instruction_only()
+input_text = "Contexto: ...\nPergunta: Qual o tratamento para hipertensão?"
+prompt = get_medical_alpaca_prompt(instruction, input_text, "")
+
+# Gera resposta
+inputs = tokenizer([prompt], return_tensors="pt").to("cuda")
+outputs = model.generate(**inputs, max_new_tokens=256)
+response = tokenizer.batch_decode(outputs)[0]
 ```
+
+---
+
+## 📊 Formato Alpaca para Fine-Tuning
+
+O formato Alpaca é o padrão usado para fine-tuning de modelos LLM:
+
+```
+Below is a medical instruction that describes a task, paired with medical context and a question. Write a response that appropriately completes the request based on the provided medical evidence.
+
+### Instruction:
+{instrução}
+
+### Input:
+{contexto + pergunta}
+
+### Response:
+{resposta esperada}
+```
+
+**Por que Alpaca?**
+- ✅ Padrão amplamente adotado
+- ✅ Compatível com modelos pré-treinados (LLaMA, Mistral, etc.)
+- ✅ Estrutura clara para o modelo entender a tarefa
+- ✅ Suportado por bibliotecas (Unsloth, TRL, Hugging Face)
 
 ---
 
@@ -184,219 +323,176 @@ python validate_data.py
 
 ---
 
-## 📝 Componentes do Prompt Formatado
-
-Cada entrada processada contém:
-
-### 1. Instrução Geral
-```
-INSTRUÇÃO MÉDICA: Responda à pergunta baseando-se nos contextos fornecidos.
-```
-
-### 2. Contexto Científico
-```
-[|Contexto|] {evidências científicas dos artigos PubMed} [|eContexto|]
-```
-- Múltiplos contextos são unidos em um único bloco
-- Dados sensíveis são anonimizados automaticamente
-
-### 3. Termos MESH (Opcional)
-```
-[|Termos|] {termos técnicos médicos separados por vírgula} [|eTermos|]
-```
-- Medical Subject Headings (vocabulário controlado)
-- Ajuda o modelo a entender o domínio médico
-
-### 4. Pergunta
-```
-[|Pergunta|] {questão médica a ser respondida} [|ePergunta|]
-```
-
-### 5. Resposta Esperada
-```
-[|Resposta|] {resposta longa baseada nas evidências} [|eResposta|]
-```
-- Resposta é anonimizada para proteção de dados
-
----
-
-## ✅ Validação de Dados
-
-O script `validate_data.py` verifica:
-
-- ✅ Estrutura correta (presença de campos `id` e `input`)
-- ✅ Tamanho médio, mínimo e máximo dos inputs
-- ✅ Presença de componentes obrigatórios:
-  - Delimitadores `[|Contexto|]`, `[|Pergunta|]`, `[|Resposta|]`
-- ✅ Consistência entre entradas
-- ✅ Identificação de erros e inconsistências
-
-**Exemplo de saída:**
-```
-================================================================================
-RELATÓRIO DE VALIDAÇÃO DO DATASET
-================================================================================
-
-📊 Estatísticas Gerais:
-  Total de entradas: 1000
-  Entradas com ID: 1000
-  Entradas com input: 1000
-
-📏 Estatísticas de Tamanho:
-  Tamanho médio do input: 1250 caracteres
-  Tamanho mínimo: 450 caracteres
-  Tamanho máximo: 3200 caracteres
-
-✅ Componentes Presentes:
-  Entradas com contexto: 1000
-  Entradas com pergunta: 1000
-  Entradas com resposta: 1000
-
-✅ Nenhum erro encontrado!
-```
-
----
-
-## 🔧 Configuração e Requisitos
-
-### Requisitos do Sistema
-
-- Python 3.7+
-- Bibliotecas padrão: `json`, `re`, `pathlib`
-- Jupyter Notebook (opcional, para uso do notebook)
-
-### Estrutura de Diretórios Esperada
-
-```
-tech_challenge_fase_3_v2/
-├── context/
-│   └── pubmedqa-master/
-│       └── data/
-│           └── ori_pqal.json      # Dataset original
-└── fine_tuning/
-    ├── prepare-medical-data.ipynb
-    ├── data_processor.py
-    ├── validate_data.py
-    └── run_pipeline.py
-```
-
-### Ajustando Caminhos
-
-Se o dataset estiver em outro local, ajuste o caminho em:
-
-**No notebook:**
-```python
-input_file = '../context/pubmedqa-master/data/ori_pqal.json'
-```
-
-**Nos scripts Python:**
-```python
-input_file = '../context/pubmedqa-master/data/ori_pqal.json'
-```
-
----
-
 ## 📈 Estatísticas e Performance
 
 ### Tempo de Processamento
 
-- **Dataset pequeno** (< 1.000 entradas): ~30 segundos
-- **Dataset médio** (1.000 - 10.000 entradas): ~2-5 minutos
-- **Dataset grande** (> 10.000 entradas): ~10-30 minutos
+**Pré-Processamento:**
+- Dataset pequeno (< 1.000 entradas): ~30 segundos
+- Dataset médio (1.000 - 10.000 entradas): ~2-5 minutos
+- Dataset grande (> 10.000 entradas): ~10-30 minutos
+
+**Fine-Tuning:**
+- Depende do tamanho do dataset e GPU
+- Com LoRA: ~1-4 horas (GPU moderna)
+- Sem LoRA: ~8-24 horas (requer muito mais memória)
 
 ### Uso de Memória
 
-- Depende do tamanho do dataset
-- Recomendado: mínimo 4GB RAM disponível
-- Para datasets muito grandes, considere processamento em lotes
+**Pré-Processamento:**
+- Mínimo: 4GB RAM
+- Recomendado: 8GB+ RAM
+
+**Fine-Tuning:**
+- Com LoRA + 4-bit: 8-16GB VRAM
+- Sem LoRA: 40GB+ VRAM (modelos grandes)
 
 ### Taxa de Sucesso
 
-- Esperado: > 99% de entradas processadas com sucesso
-- Entradas com erro são registradas mas não interrompem o processamento
+- Pré-processamento: > 99% de entradas processadas
+- Fine-tuning: Depende da qualidade dos dados e configurações
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Erro: Arquivo não encontrado
+### Pré-Processamento
 
+**Erro: Arquivo não encontrado**
 ```
-Erro: Arquivo não encontrado: ../context/pubmedqa-master/data/ori_pqal.json
-```
-
-**Solução:** Verifique o caminho do arquivo e ajuste se necessário.
-
-### Erro: Memória insuficiente
-
-**Solução:** Processe o dataset em lotes ou aumente a memória disponível.
-
-### Erro: Encoding UTF-8
-
-**Solução:** Certifique-se de que o arquivo está em UTF-8. O script já trata isso automaticamente.
-
-### Validação mostra erros
-
-**Solução:** 
-1. Verifique os logs de processamento
-2. Revise as entradas com erro
-3. Execute novamente o processamento
-
----
-
-## 🔄 Próximos Passos Após Pré-Processamento
-
-Após concluir o pré-processamento:
-
-### 1. Validar Dados
-```bash
-python validate_data.py
+Solução: Verifique o caminho em run_pipeline.py ou ajuste manualmente
 ```
 
-### 2. Preparar para Fine-Tuning
+**Erro: Memória insuficiente**
+```
+Solução: Processe em lotes ou aumente RAM disponível
+```
 
-Use o arquivo `medical_tuning_data.json` com:
+### Fine-Tuning
 
-- **Hugging Face Transformers**
-  ```python
-  from datasets import load_dataset
-  dataset = load_dataset('json', data_files='medical_tuning_data.json')
-  ```
+**Erro: CUDA out of memory**
+```
+Solução:
+1. Reduza batch_size em model_config.py
+2. Aumente gradient_accumulation_steps
+3. Use modelo menor
+4. Reduza max_seq_length
+```
 
-- **PEFT (LoRA/QLoRA)**
-  - Configuração de adaptadores para treinamento eficiente
+**Erro: Dataset não encontrado**
+```
+Solução: Execute primeiro python run_pipeline.py --all
+```
 
-- **Axolotl**
-  - Framework especializado em fine-tuning de LLMs
+**Erro: Import unsloth failed**
+```
+Solução: Instale dependências:
+pip install 'unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git'
+```
 
-- **Outras ferramentas**
-  - Qualquer framework que aceite formato JSON de instruções
+**Loss não diminui**
+```
+Solução:
+1. Verifique qualidade dos dados
+2. Ajuste learning rate
+3. Aumente número de steps
+4. Verifique se dataset está formatado corretamente
+```
 
-### 3. Configurar Hiperparâmetros
+### Inferência
 
-- Learning rate: `1e-4` a `5e-4`
-- Batch size: 4-16 (depende da GPU)
-- Epochs: 1-3 (evitar overfitting)
-- LoRA rank: 8-64
+**Erro: Modelo não encontrado**
+```
+Solução: Verifique caminho do modelo treinado
+```
+
+**Respostas de baixa qualidade**
+```
+Solução:
+1. Treine por mais steps
+2. Ajuste hiperparâmetros
+3. Verifique qualidade do dataset
+4. Use modelo base maior
+```
 
 ---
 
 ## 📚 Referências e Recursos
 
-### Dataset Original
+### Datasets
+
 - **PubMedQA**: Dataset de perguntas e respostas médicas baseadas em evidências
 - Localização: `../context/pubmedqa-master/data/ori_pqal.json`
-- Mais informações: [PubMedQA Paper](https://arxiv.org/abs/1909.06146)
+- Paper: [PubMedQA: A Dataset for Biomedical Research Question Answering](https://arxiv.org/abs/1909.06146)
 
-### Notebooks de Referência
-- `../context/prepare-data.ipynb` - Preparação de dados de notícias
-- `../context/generate-output-for-news.ipynb` - Geração de saídas
+### Bibliotecas
+
+- **Unsloth**: Fine-tuning rápido e eficiente
+  - GitHub: https://github.com/unslothai/unsloth
+- **Hugging Face Transformers**: Modelos de linguagem
+  - Docs: https://huggingface.co/docs/transformers
+- **TRL**: Training Reinforcement Learning
+  - Docs: https://huggingface.co/docs/trl
 
 ### Documentação Técnica
+
 - **Instruction Tuning**: Técnica de fine-tuning para modelos LLM
+- **LoRA**: Low-Rank Adaptation para fine-tuning eficiente
+- **Alpaca Format**: Formato padrão de instrução
 - **LGPD**: Lei Geral de Proteção de Dados (Brasil)
 - **HIPAA**: Health Insurance Portability and Accountability Act (EUA)
 - **MESH**: Medical Subject Headings (vocabulário controlado)
+
+---
+
+## 🔄 Fluxo Completo do Pipeline
+
+```mermaid
+graph TD
+    A[ori_pqal.json] --> B[Pré-Processamento]
+    B --> C[medical_tuning_data.json]
+    C --> D[Formatação Alpaca]
+    D --> E[formatted_medical_dataset.json]
+    E --> F[Fine-Tuning]
+    F --> G[lora_model_medical]
+    G --> H[Teste/Inferência]
+```
+
+### Passo a Passo Detalhado
+
+1. **Pré-Processamento**
+   ```bash
+   python run_pipeline.py --preprocess
+   ```
+   - Carrega `ori_pqal.json`
+   - Anonimiza dados sensíveis
+   - Formata com delimitadores
+   - Gera `medical_tuning_data.json`
+
+2. **Formatação Alpaca**
+   ```bash
+   python run_pipeline.py --format
+   ```
+   - Converte para formato Alpaca
+   - Separa instruction, input, output
+   - Gera `formatted_medical_dataset.json`
+
+3. **Fine-Tuning**
+   ```bash
+   python training/finetuning_medical.py
+   ```
+   - Carrega modelo base
+   - Configura LoRA
+   - Treina com dados médicos
+   - Salva adaptadores LoRA
+
+4. **Teste**
+   ```bash
+   python inference/test_model.py
+   ```
+   - Carrega modelo treinado
+   - Testa com exemplos
+   - Valida qualidade
 
 ---
 
@@ -405,9 +501,9 @@ Use o arquivo `medical_tuning_data.json` com:
 Para dúvidas ou problemas:
 
 1. Verifique a seção **Troubleshooting** acima
-2. Revise os comentários detalhados no notebook
-3. Execute `validate_data.py` para diagnosticar problemas
-4. Verifique os logs de processamento
+2. Revise os comentários detalhados nos notebooks
+3. Execute scripts de validação para diagnosticar problemas
+4. Verifique os logs de processamento/treinamento
 
 ---
 
@@ -419,4 +515,4 @@ Este código faz parte do projeto Medical Assistant e segue as mesmas diretrizes
 
 **Última atualização:** 2024
 
-**Versão do pipeline:** 1.0
+**Versão do pipeline:** 2.0 (com fine-tuning)
