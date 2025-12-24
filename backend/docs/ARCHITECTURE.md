@@ -8,7 +8,7 @@ O quimicAI é uma plataforma de aprendizado de química com IA, construída com 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         FRONTEND (Vue.js)                        │
+│                         FRONTEND (Vue.js)                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │   App.vue    │  │  Components  │  │   Config     │          │
 │  │              │  │              │  │              │          │
@@ -16,7 +16,7 @@ O quimicAI é uma plataforma de aprendizado de química com IA, construída com 
 │  │ - Auth       │  │ - Activities │  │ - Env        │          │
 │  │ - State      │  │ - Profile    │  │              │          │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
-│         │                  │                  │                   │
+│         │                  │                  │                │
 │         └──────────────────┴──────────────────┘                   │
 │                            │                                      │
 │                            ▼                                      │
