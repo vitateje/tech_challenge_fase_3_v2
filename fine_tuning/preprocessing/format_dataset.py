@@ -140,10 +140,9 @@ def format_medical_to_alpaca(
     
     print(f"Total de entradas no dataset: {len(data)}")
     
-    # Inicializa listas para armazenar dados formatados
-    instructions = []
-    inputs = []
-    outputs = []
+    # Inicializa lista para armazenar dados formatados
+    # O formato correto é uma lista de objetos, não um objeto com arrays
+    formatted_data = []
     failed_entries = []
     
     # Processa cada entrada do dataset
@@ -164,23 +163,18 @@ def format_medical_to_alpaca(
                 failed_entries.append(i)
                 continue
             
-            # Adiciona aos arrays formatados
-            instructions.append(instruction)
-            inputs.append(input_text)
-            outputs.append(response)
+            # Adiciona objeto formatado à lista
+            # Este formato é compatível com load_dataset("json", ...) do Hugging Face
+            formatted_data.append({
+                "instruction": instruction,
+                "input": input_text,
+                "output": response
+            })
             
         except Exception as e:
             print(f"⚠️  Erro ao processar entrada {i} (ID: {entry.get('id', 'N/A')}): {e}")
             failed_entries.append(i)
             continue
-    
-    # Cria o dicionário final no formato Alpaca
-    # Este formato é compatível com load_dataset("json", ...) do Hugging Face
-    formatted_data = {
-        "instruction": instructions,
-        "input": inputs,
-        "output": outputs
-    }
     
     # Salva o dataset formatado
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -188,7 +182,7 @@ def format_medical_to_alpaca(
     
     # Estatísticas finais
     total_entries = len(data)
-    successful = len(instructions)
+    successful = len(formatted_data)
     failed = len(failed_entries)
     
     print("-" * 80)
