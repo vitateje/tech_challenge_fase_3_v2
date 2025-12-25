@@ -10,12 +10,30 @@ Este pacote contém módulos reutilizáveis para:
 - Queries RAG
 """
 
+# Imports básicos (sempre disponíveis)
 from .data_loader import load_medical_dataset
 from .data_processor import process_medical_entry
-from .text_splitter import MedicalTextSplitter
-from .embeddings_manager import EmbeddingsManager
-from .pinecone_ingester import PineconeIngester
-from .rag_query import query_medical_rag
+
+# Imports opcionais (podem falhar se dependências não estiverem instaladas)
+try:
+    from .text_splitter import MedicalTextSplitter
+except ImportError:
+    MedicalTextSplitter = None
+
+try:
+    from .embeddings_manager import EmbeddingsManager
+except ImportError:
+    EmbeddingsManager = None
+
+try:
+    from .pinecone_ingester import PineconeIngester
+except ImportError:
+    PineconeIngester = None
+
+try:
+    from .rag_query import query_medical_rag
+except ImportError:
+    query_medical_rag = None
 
 __all__ = [
     'load_medical_dataset',

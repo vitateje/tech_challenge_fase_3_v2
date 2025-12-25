@@ -8,7 +8,7 @@ e formatar resultados para uso em geração de respostas com LLM.
 from typing import List, Dict, Any, Optional
 import numpy as np
 
-from ..config.settings import Settings
+from config.settings import Settings
 from .embeddings_manager import EmbeddingsManager
 
 
@@ -74,8 +74,8 @@ def query_medical_rag(
         
     except ImportError:
         raise ImportError(
-            "pinecone-client não instalado. "
-            "Instale com: pip install pinecone-client"
+            "pinecone não instalado. "
+            "Instale com: pip install pinecone"
         )
     except Exception as e:
         raise RuntimeError(f"Erro ao conectar com Pinecone: {e}")

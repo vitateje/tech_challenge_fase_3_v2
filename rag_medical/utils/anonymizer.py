@@ -42,60 +42,69 @@ def anonymize_text(text: Union[str, None]) -> Union[str, None]:
     if not text:
         return text
     
-    # PATTERN 1: Remove datas no formato DD/MM/YYYY ou MM/DD/YYYY
-    # Exemplo: "15/03/2024" ou "03/15/2024" → "[DATA]"
-    text = re.sub(r'\b\d{1,2}/\d{1,2}/\d{4}\b', '[DATA]', text)
-    
-    # PATTERN 2: Remove datas no formato ISO (YYYY-MM-DD)
-    # Exemplo: "2024-03-15" → "[DATA]"
-    text = re.sub(r'\b\d{4}-\d{2}-\d{2}\b', '[DATA]', text)
-    
-    # PATTERN 3: Remove datas no formato DD-MM-YYYY
-    # Exemplo: "15-03-2024" → "[DATA]"
-    text = re.sub(r'\b\d{1,2}-\d{1,2}-\d{4}\b', '[DATA]', text)
-    
-    # PATTERN 4: Remove IDs de pacientes (formato "ID: 12345" ou "Patient ID: 12345")
-    # Exemplo: "ID: 12345" → "ID: [PACIENTE_ID]"
-    # flags=re.IGNORECASE torna a busca case-insensitive (maiúsculas/minúsculas)
-    text = re.sub(
-        r'\b(?:ID|Patient ID|Paciente ID):\s*\d+\b',
-        r'\1: [PACIENTE_ID]',
-        text,
-        flags=re.IGNORECASE
-    )
-    
-    # PATTERN 5: Remove números de prontuário (formato "Prontuário: 12345")
-    text = re.sub(
-        r'\b(?:Prontuário|Prontuario|Medical Record):\s*\d+\b',
-        r'\1: [PRONTUARIO]',
-        text,
-        flags=re.IGNORECASE
-    )
-    
-    # PATTERN 6: Remove números de telefone (formato XXX-XXX-XXXX ou XXX.XXX.XXXX)
-    # Exemplo: "11987654321" ou "11-98765-4321" → "[TELEFONE]"
-    # Padrão brasileiro: (XX) XXXX-XXXX ou (XX) XXXXX-XXXX
-    text = re.sub(
-        r'\b(?:\(?\d{2}\)?\s?)?\d{4,5}[-.]?\d{4}\b',
-        '[TELEFONE]',
-        text
-    )
-    
-    # PATTERN 7: Remove endereços de email
-    # Exemplo: "email@hospital.com" → "[EMAIL]"
-    # \b garante que estamos no início/fim de uma palavra
-    text = re.sub(
-        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-        '[EMAIL]',
-        text
-    )
-    
-    # PATTERN 8: Remove CPF (formato XXX.XXX.XXX-XX)
-    text = re.sub(
-        r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b',
-        '[CPF]',
-        text
-    )
+    try:
+        # PATTERN 1: Remove datas no formato DD/MM/YYYY ou MM/DD/YYYY
+        # Exemplo: "15/03/2024" ou "03/15/2024" → "[DATA]"
+        text = re.sub(r'\b\d{1,2}/\d{1,2}/\d{4}\b', '[DATA]', text)
+        
+        # PATTERN 2: Remove datas no formato ISO (YYYY-MM-DD)
+        # Exemplo: "2024-03-15" → "[DATA]"
+        text = re.sub(r'\b\d{4}-\d{2}-\d{2}\b', '[DATA]', text)
+        
+        # PATTERN 3: Remove datas no formato DD-MM-YYYY
+        # Exemplo: "15-03-2024" → "[DATA]"
+        text = re.sub(r'\b\d{1,2}-\d{1,2}-\d{4}\b', '[DATA]', text)
+        
+        # PATTERN 4: Remove IDs de pacientes (formato "ID: 12345" ou "Patient ID: 12345")
+        # Exemplo: "ID: 12345" → "ID: [PACIENTE_ID]"
+        # flags=re.IGNORECASE torna a busca case-insensitive (maiúsculas/minúsculas)
+        # Usa grupo capturador (ID|Patient ID|Paciente ID) para poder referenciar com \1
+        text = re.sub(
+            r'\b(ID|Patient ID|Paciente ID):\s*\d+\b',
+            r'\1: [PACIENTE_ID]',
+            text,
+            flags=re.IGNORECASE
+        )
+        
+        # PATTERN 5: Remove números de prontuário (formato "Prontuário: 12345")
+        # Usa grupo capturador para poder referenciar com \1
+        text = re.sub(
+            r'\b(Prontuário|Prontuario|Medical Record):\s*\d+\b',
+            r'\1: [PRONTUARIO]',
+            text,
+            flags=re.IGNORECASE
+        )
+        
+        # PATTERN 6: Remove números de telefone (formato XXX-XXX-XXXX ou XXX.XXX.XXXX)
+        # Exemplo: "11987654321" ou "11-98765-4321" → "[TELEFONE]"
+        # Padrão brasileiro: (XX) XXXX-XXXX ou (XX) XXXXX-XXXX
+        text = re.sub(
+            r'\b(?:\(?\d{2}\)?\s?)?\d{4,5}[-.]?\d{4}\b',
+            '[TELEFONE]',
+            text
+        )
+        
+        # PATTERN 7: Remove endereços de email
+        # Exemplo: "email@hospital.com" → "[EMAIL]"
+        # \b garante que estamos no início/fim de uma palavra
+        text = re.sub(
+            r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+            '[EMAIL]',
+            text
+        )
+        
+        # PATTERN 8: Remove CPF (formato XXX.XXX.XXX-XX)
+        text = re.sub(
+            r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b',
+            '[CPF]',
+            text
+        )
+        
+    except re.error as e:
+        # Se houver erro de regex, retorna o texto original sem anonimização
+        # Isso evita que o processamento falhe completamente
+        print(f"⚠️  Aviso: Erro de regex na anonimização: {e}")
+        return text
     
     return text
 

@@ -7,9 +7,12 @@ com embeddings e metadados estruturados.
 
 from typing import List, Dict, Any, Optional
 import time
+import json
+import os
+from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config.settings import Settings
+from config.settings import Settings
 from .embeddings_manager import EmbeddingsManager
 
 
@@ -64,6 +67,17 @@ class PineconeIngester:
         
         # Valida compatibilidade de dimensões
         self._validate_dimensions()
+        
+        # Diretório para checkpoints (usa o diretório raiz do projeto)
+        # Tenta usar MEDICAL_DATA_PATH se disponível, senão usa o diretório do módulo
+        if hasattr(self.settings, 'MEDICAL_DATA_PATH') and self.settings.MEDICAL_DATA_PATH:
+            checkpoint_base = Path(self.settings.MEDICAL_DATA_PATH).parent
+        else:
+            # Fallback: usa o diretório raiz do projeto (onde está config/)
+            checkpoint_base = Path(__file__).parent.parent
+        
+        self.checkpoint_dir = checkpoint_base / "checkpoints"
+        self.checkpoint_dir.mkdir(exist_ok=True)
     
     def _init_pinecone(self):
         """Inicializa cliente Pinecone."""
@@ -79,8 +93,8 @@ class PineconeIngester:
             
         except ImportError:
             raise ImportError(
-                "pinecone-client não instalado. "
-                "Instale com: pip install pinecone-client"
+                "pinecone não instalado. "
+                "Instale com: pip install pinecone"
             )
         except Exception as e:
             raise RuntimeError(f"Erro ao inicializar Pinecone: {e}")
@@ -91,15 +105,63 @@ class PineconeIngester:
             # Obtém estatísticas do índice
             stats = self.index.describe_index_stats()
             
-            # A dimensão do índice está no stats (se disponível)
-            # Para índices existentes, assumimos que está correta
-            # e apenas validamos se o embedding manager consegue gerar embeddings
-            
+            # Obtém dimensão dos embeddings
             embedding_dim = self.embeddings_manager.get_embedding_dimension()
+            
+            # Tenta obter a dimensão do índice
+            # A dimensão pode estar em diferentes lugares dependendo da versão da API
+            index_dimension = None
+            
+            # Tenta obter do stats (formato mais recente)
+            if hasattr(stats, 'dimension'):
+                index_dimension = stats.dimension
+            elif isinstance(stats, dict) and 'dimension' in stats:
+                index_dimension = stats['dimension']
+            # Tenta obter do index_info (formato alternativo)
+            elif hasattr(self.index, 'describe_index'):
+                try:
+                    index_info = self.index.describe_index()
+                    if hasattr(index_info, 'dimension'):
+                        index_dimension = index_info.dimension
+                    elif isinstance(index_info, dict) and 'dimension' in index_info:
+                        index_dimension = index_info['dimension']
+                except:
+                    pass
+            
             print(f"   Dimensão dos embeddings: {embedding_dim}")
+            
+            # Se conseguiu obter a dimensão do índice, valida compatibilidade
+            if index_dimension is not None:
+                print(f"   Dimensão do índice Pinecone: {index_dimension}")
+                
+                if embedding_dim != index_dimension:
+                    print("\n" + "=" * 80)
+                    print("⚠️  INCOMPATIBILIDADE DE DIMENSÕES DETECTADA!")
+                    print("=" * 80)
+                    print(f"   Dimensão dos embeddings: {embedding_dim}")
+                    print(f"   Dimensão do índice Pinecone: {index_dimension}")
+                    print("\n💡 SOLUÇÕES:")
+                    print("   1. Use um modelo de embedding compatível:")
+                    if index_dimension == 1024:
+                        print("      - Configure Ollama com modelo de 1024 dimensões")
+                        print("      - Ou recrie o índice Pinecone com 768 dimensões")
+                    elif index_dimension == 768:
+                        print("      - O modelo atual (Gemini text-embedding-004) está correto")
+                    print("\n   2. Se o índice foi criado com 'llama-text-embed-v2' (1024 dims):")
+                    print("      - Use Ollama com modelo compatível (ex: mxbai-embed-large)")
+                    print("      - Ou recrie o índice com 768 dimensões para usar Gemini")
+                    print("=" * 80)
+                    print("\n⚠️  Continuando, mas resultados podem ser subótimos.")
+                    print("   Recomenda-se usar embeddings com a mesma dimensão do índice.\n")
+                else:
+                    print("   ✅ Dimensões compatíveis!")
+            else:
+                print("   ⚠️  Não foi possível obter a dimensão do índice automaticamente")
+                print("   Verifique manualmente se as dimensões são compatíveis")
             
         except Exception as e:
             print(f"⚠️  Aviso: Não foi possível validar dimensões: {e}")
+            print(f"   Dimensão dos embeddings: {self.embeddings_manager.get_embedding_dimension()}")
     
     def _create_vector_id(self, article_id: str, chunk_index: int) -> str:
         """
@@ -211,19 +273,58 @@ class PineconeIngester:
             print(f"⚠️  Erro ao inserir lote: {e}")
             raise
     
+    def _get_checkpoint_path(self) -> Path:
+        """Retorna o caminho do arquivo de checkpoint."""
+        checkpoint_name = f"ingestion_checkpoint_{self.index_name}_{self.namespace or 'default'}.json"
+        return self.checkpoint_dir / checkpoint_name
+    
+    def _save_checkpoint(self, processed_indices: List[int], total_chunks: int):
+        """Salva checkpoint do progresso."""
+        checkpoint_data = {
+            "processed_indices": processed_indices,
+            "total_chunks": total_chunks,
+            "index_name": self.index_name,
+            "namespace": self.namespace,
+            "timestamp": time.time()
+        }
+        checkpoint_path = self._get_checkpoint_path()
+        with open(checkpoint_path, 'w') as f:
+            json.dump(checkpoint_data, f, indent=2)
+    
+    def _load_checkpoint(self) -> Optional[Dict[str, Any]]:
+        """Carrega checkpoint do progresso."""
+        checkpoint_path = self._get_checkpoint_path()
+        if checkpoint_path.exists():
+            try:
+                with open(checkpoint_path, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"⚠️  Erro ao carregar checkpoint: {e}")
+        return None
+    
+    def _clear_checkpoint(self):
+        """Remove checkpoint."""
+        checkpoint_path = self._get_checkpoint_path()
+        if checkpoint_path.exists():
+            checkpoint_path.unlink()
+    
     def ingest_chunks(
         self,
         chunks: List[Dict[str, Any]],
         batch_size: Optional[int] = None,
-        show_progress: bool = True
+        show_progress: bool = True,
+        resume_from_checkpoint: bool = True,
+        checkpoint_interval: int = 10
     ) -> Dict[str, Any]:
         """
-        Ingere chunks no Pinecone em lotes.
+        Ingere chunks no Pinecone em lotes com suporte a checkpointing.
         
         Args:
             chunks: Lista de chunks para ingerir.
             batch_size: Tamanho do lote. Se None, usa das configurações.
             show_progress: Se True, exibe barra de progresso.
+            resume_from_checkpoint: Se True, tenta retomar de checkpoint existente.
+            checkpoint_interval: Intervalo (em lotes) para salvar checkpoint.
             
         Returns:
             Dicionário com estatísticas da ingestão:
@@ -231,6 +332,7 @@ class PineconeIngester:
                 - total_vectors: Total de vetores inseridos
                 - batches: Número de lotes
                 - errors: Lista de erros (se houver)
+                - interrupted: Se True, processo foi interrompido
         """
         if not chunks:
             return {
@@ -238,60 +340,122 @@ class PineconeIngester:
                 "total_vectors": 0,
                 "batches": 0,
                 "errors": [],
+                "interrupted": False,
             }
         
         batch_size = batch_size or self.settings.BATCH_SIZE
         total_chunks = len(chunks)
         total_vectors = 0
         errors = []
+        processed_indices = []
+        start_index = 0
+        interrupted = False
+        
+        # Tenta carregar checkpoint
+        if resume_from_checkpoint:
+            checkpoint = self._load_checkpoint()
+            if checkpoint:
+                if (checkpoint.get("total_chunks") == total_chunks and
+                    checkpoint.get("index_name") == self.index_name and
+                    checkpoint.get("namespace") == self.namespace):
+                    processed_indices = checkpoint.get("processed_indices", [])
+                    start_index = max(processed_indices) + 1 if processed_indices else 0
+                    total_vectors = len(processed_indices)
+                    print(f"\n📋 Checkpoint encontrado! Retomando de índice {start_index}")
+                    print(f"   Já processados: {total_vectors}/{total_chunks} chunks")
+                else:
+                    print("⚠️  Checkpoint incompatível (diferentes chunks/índice). Ignorando...")
+                    self._clear_checkpoint()
         
         print(f"\n🚀 Iniciando ingestão de {total_chunks} chunks no Pinecone...")
         print(f"   Batch size: {batch_size}")
         print(f"   Índice: {self.index_name}")
         if self.namespace:
             print(f"   Namespace: {self.namespace}")
+        if start_index > 0:
+            print(f"   Retomando de: {start_index}/{total_chunks}")
         
         # Processa em lotes
         try:
             from tqdm import tqdm
-            iterator = range(0, total_chunks, batch_size)
+            iterator = range(start_index, total_chunks, batch_size)
             if show_progress:
-                iterator = tqdm(iterator, desc="Ingerindo chunks")
+                iterator = tqdm(iterator, desc="Ingerindo chunks", initial=start_index, total=total_chunks)
         except ImportError:
-            iterator = range(0, total_chunks, batch_size)
+            iterator = range(start_index, total_chunks, batch_size)
         
-        for i in iterator:
-            batch_chunks = chunks[i:i + batch_size]
-            
-            try:
-                # Prepara vetores do lote
-                vectors = self._prepare_vectors(batch_chunks)
+        try:
+            batch_num = 0
+            for i in iterator:
+                batch_chunks = chunks[i:i + batch_size]
+                batch_num += 1
                 
-                # Insere no Pinecone
-                self._upsert_batch(vectors)
-                
-                total_vectors += len(vectors)
-                
-                # Pequena pausa para evitar rate limiting
-                if i + batch_size < total_chunks:
-                    time.sleep(0.1)
+                try:
+                    # Prepara vetores do lote
+                    vectors = self._prepare_vectors(batch_chunks)
                     
-            except Exception as e:
-                error_msg = f"Erro no lote {i//batch_size + 1}: {e}"
-                errors.append(error_msg)
-                print(f"⚠️  {error_msg}")
-                continue
-        
-        print(f"\n✅ Ingestão concluída!")
-        print(f"   Vetores inseridos: {total_vectors}/{total_chunks}")
-        if errors:
-            print(f"   Erros: {len(errors)}")
+                    # Insere no Pinecone
+                    self._upsert_batch(vectors)
+                    
+                    # Marca índices como processados
+                    batch_indices = list(range(i, min(i + batch_size, total_chunks)))
+                    processed_indices.extend(batch_indices)
+                    total_vectors += len(vectors)
+                    
+                    # Salva checkpoint periodicamente
+                    if batch_num % checkpoint_interval == 0:
+                        self._save_checkpoint(processed_indices, total_chunks)
+                        if show_progress:
+                            print(f"\n💾 Checkpoint salvo: {total_vectors}/{total_chunks} chunks processados")
+                    
+                    # Pequena pausa para evitar rate limiting
+                    if i + batch_size < total_chunks:
+                        time.sleep(0.1)
+                        
+                except KeyboardInterrupt:
+                    # Salva checkpoint antes de interromper
+                    print(f"\n\n⚠️  Interrupção detectada! Salvando checkpoint...")
+                    self._save_checkpoint(processed_indices, total_chunks)
+                    interrupted = True
+                    raise
+                except Exception as e:
+                    error_msg = f"Erro no lote {i//batch_size + 1}: {e}"
+                    errors.append(error_msg)
+                    print(f"⚠️  {error_msg}")
+                    # Continua com próximo lote mesmo em caso de erro
+                    continue
+            
+            # Salva checkpoint final
+            self._save_checkpoint(processed_indices, total_chunks)
+            
+            # Remove checkpoint se concluído com sucesso
+            if not interrupted:
+                self._clear_checkpoint()
+                print(f"\n✅ Ingestão concluída!")
+            else:
+                print(f"\n⏸️  Ingestão interrompida!")
+            
+            print(f"   Vetores inseridos: {total_vectors}/{total_chunks}")
+            if errors:
+                print(f"   Erros: {len(errors)}")
+            
+        except KeyboardInterrupt:
+            # Salva checkpoint antes de sair
+            if not interrupted:  # Evita salvar duas vezes
+                print(f"\n\n⚠️  Interrupção detectada! Salvando checkpoint...")
+                self._save_checkpoint(processed_indices, total_chunks)
+                interrupted = True
+            print(f"\n⏸️  Processo interrompido pelo usuário")
+            print(f"   Progresso salvo: {total_vectors}/{total_chunks} chunks")
+            print(f"   Para retomar, execute novamente com resume_from_checkpoint=True")
         
         return {
             "total_chunks": total_chunks,
             "total_vectors": total_vectors,
             "batches": (total_chunks + batch_size - 1) // batch_size,
             "errors": errors,
+            "interrupted": interrupted,
+            "checkpoint_path": str(self._get_checkpoint_path()) if interrupted else None,
         }
     
     def delete_all(self, namespace: Optional[str] = None):

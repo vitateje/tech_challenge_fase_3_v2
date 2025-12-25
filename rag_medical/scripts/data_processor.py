@@ -6,7 +6,7 @@ formatando metadados e preparando dados para embedding e ingestão.
 """
 
 from typing import Dict, Any, List, Optional
-from ..utils.anonymizer import anonymize_text
+from utils.anonymizer import anonymize_text
 
 
 def process_medical_entry(
