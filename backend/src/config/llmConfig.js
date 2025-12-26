@@ -73,6 +73,22 @@ function loadProviderConfig() {
     };
   }
 
+  // Hugging Face (Inference API)
+  if (process.env.HUGGINGFACE_API_KEY) {
+    providers.huggingface = {
+      type: 'huggingface',
+      name: 'Hugging Face',
+      apiKey: process.env.HUGGINGFACE_API_KEY,
+      modelId: process.env.HUGGINGFACE_MODEL_ID || 'meta-llama/Llama-2-7b-chat-hf',
+      temperature: process.env.HUGGINGFACE_TEMPERATURE 
+        ? parseFloat(process.env.HUGGINGFACE_TEMPERATURE) 
+        : 0.7,
+      maxTokens: process.env.HUGGINGFACE_MAX_TOKENS 
+        ? parseInt(process.env.HUGGINGFACE_MAX_TOKENS) 
+        : 500
+    };
+  }
+
   return providers;
 }
 

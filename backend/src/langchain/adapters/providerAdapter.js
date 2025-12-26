@@ -1,7 +1,10 @@
 const { ChatOllama } = require('@langchain/ollama');
 const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+const { BaseChatModel } = require('@langchain/core/language_models/chat_models');
+const { AIMessage, HumanMessage } = require('@langchain/core/messages');
 const llmConfig = require('../../config/llmConfig');
 const langchainConfig = require('../config');
+const providerRegistry = require('../../providers/ProviderRegistry');
 
 /**
  * Adapter para integrar providers existentes com LangChain ChatModels
@@ -80,6 +83,89 @@ class ProviderAdapter {
         console.error(`💡 Verifique se o modelo ${providerConfigs.biobyia.model} está instalado: ollama pull ${providerConfigs.biobyia.model}`);
         console.error(`💡 Verifique se o Ollama está rodando em ${providerConfigs.biobyia.baseUrl}`);
         // Não lança erro aqui - deixa para falhar quando tentar usar
+      }
+    }
+
+    // Inicializar HuggingFace se disponível
+    if (providerConfigs.huggingface) {
+      try {
+        // Tenta usar @langchain/huggingface se disponível
+        let model = null;
+        try {
+          const { ChatHuggingFace } = require('@langchain/huggingface');
+          model = new ChatHuggingFace({
+            model: providerConfigs.huggingface.modelId,
+            apiKey: providerConfigs.huggingface.apiKey,
+            temperature: providerConfigs.huggingface.temperature,
+            maxTokens: providerConfigs.huggingface.maxTokens,
+          });
+          this.models.set('huggingface', model);
+          console.log(`✅ LangChain HuggingFace ChatModel inicializado (${providerConfigs.huggingface.modelId})`);
+        } catch (langchainError) {
+          // Se @langchain/huggingface não estiver instalado, cria wrapper customizado
+          console.log(`ℹ️  @langchain/huggingface não instalado. Criando wrapper customizado...`);
+          
+          // Cria HuggingFaceProvider
+          const HuggingFaceProvider = providerRegistry.getProvider('huggingface');
+          if (!HuggingFaceProvider) {
+            throw new Error('HuggingFaceProvider não encontrado no registry');
+          }
+          
+          const hfProvider = new HuggingFaceProvider(providerConfigs.huggingface);
+          await hfProvider.initialize();
+          
+          // Cria wrapper que adapta HuggingFaceProvider para ChatModel
+          class HuggingFaceChatModel extends BaseChatModel {
+            constructor(provider) {
+              super({});
+              this.provider = provider;
+            }
+            
+            _llmType() {
+              return 'huggingface';
+            }
+            
+            async _generate(messages, options, runManager) {
+              // Converte mensagens LangChain para prompt simples
+              const prompt = this._formatMessagesAsPrompt(messages);
+              
+              // Chama o provider
+              const response = await this.provider.generate(prompt, {
+                temperature: options.temperature || this.provider.config.temperature,
+                maxTokens: options.maxTokens || this.provider.config.maxTokens
+              });
+              
+              // Retorna no formato LangChain esperado
+              const aiMessage = new AIMessage(response);
+              return {
+                generations: [{
+                  text: response,
+                  message: aiMessage
+                }],
+                llmOutput: {}
+              };
+            }
+            
+            _formatMessagesAsPrompt(messages) {
+              // Formata mensagens do LangChain para prompt simples
+              return messages.map(msg => {
+                if (msg instanceof HumanMessage) {
+                  return `Human: ${msg.content}`;
+                } else if (msg instanceof AIMessage) {
+                  return `Assistant: ${msg.content}`;
+                } else {
+                  return msg.content;
+                }
+              }).join('\n');
+            }
+          }
+          
+          model = new HuggingFaceChatModel(hfProvider);
+          this.models.set('huggingface', model);
+          console.log(`✅ HuggingFace ChatModel wrapper inicializado (${providerConfigs.huggingface.modelId})`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao inicializar LangChain HuggingFace: ${error.message}`);
       }
     }
 

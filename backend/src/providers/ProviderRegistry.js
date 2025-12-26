@@ -1,6 +1,7 @@
 const GeminiProvider = require('./GeminiProvider');
 const OpenAIProvider = require('./OpenAIProvider');
 const OllamaProvider = require('./OllamaProvider');
+const HuggingFaceProvider = require('./HuggingFaceProvider');
 
 class ProviderRegistry {
   constructor() {
@@ -13,6 +14,7 @@ class ProviderRegistry {
     this.register('gemini', GeminiProvider);
     this.register('openai', OpenAIProvider);
     this.register('ollama', OllamaProvider);
+    this.register('huggingface', HuggingFaceProvider);
   }
 
   register(name, ProviderClass) {
