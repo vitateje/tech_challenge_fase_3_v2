@@ -7,7 +7,7 @@ para tarefas de question-answering médico baseado em evidências científicas.
 O pipeline utiliza:
 - Unsloth: Para fine-tuning rápido e eficiente
 - LoRA: Para treinar apenas uma fração dos parâmetros (economiza memória)
-- Alpaca Format: Formato padronizado de instrução para modelos LLM
+- ChatML Format: Formato padronizado de conversas para modelos LLM modernos
 
 Requisitos:
 - GPU com pelo menos 8GB VRAM (recomendado 16GB+)
@@ -61,7 +61,7 @@ from training.model_config import (
     get_model_config, get_lora_config, get_training_config,
     get_dataset_config, get_inference_config
 )
-from utils.prompts import get_medical_alpaca_prompt, get_instruction_only
+from unsloth import get_chat_template
 
 # ============================================================================
 # ETAPA 2: CONFIGURAÇÕES E CAMINHOS
@@ -79,8 +79,8 @@ inference_config = get_inference_config()
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR
 
-# Dataset formatado no formato Alpaca (gerado por format_dataset.py)
-FORMATTED_DATASET_PATH = DATA_DIR / "formatted_medical_dataset.json"
+# Dataset formatado no formato ChatML JSONL (gerado por run_pipeline.py)
+FORMATTED_DATASET_PATH = DATA_DIR / "formatted_medical_dataset.jsonl"
 
 # Diretório para salvar o modelo treinado
 MODEL_OUTPUT_DIR = BASE_DIR / "lora_model_medical"
@@ -106,13 +106,15 @@ print("=" * 80)
 
 def load_formatted_dataset(dataset_path: Path):
     """
-    Carrega o dataset formatado no formato Alpaca
+    Carrega o dataset formatado no formato ChatML JSONL
     
     O dataset deve ter a estrutura:
     {
-        "instruction": [...],
-        "input": [...],
-        "output": [...]
+        "messages": [
+            {"role": "system", "content": "..."},
+            {"role": "user", "content": "..."},
+            {"role": "assistant", "content": "..."}
+        ]
     }
     
     Args:
@@ -124,7 +126,7 @@ def load_formatted_dataset(dataset_path: Path):
     if not dataset_path.exists():
         raise FileNotFoundError(
             f"Dataset não encontrado: {dataset_path}\n"
-            f"Execute primeiro: python preprocessing/format_dataset.py"
+            f"Execute primeiro: python run_pipeline.py --format"
         )
     
     print(f"\n📦 Carregando dataset de: {dataset_path}")
@@ -143,40 +145,12 @@ def load_formatted_dataset(dataset_path: Path):
 # ETAPA 4: FUNÇÃO DE FORMATAÇÃO DE PROMPTS
 # ============================================================================
 
-def formatting_prompts_func(examples):
+def formatting_prompts_func(examples, tokenizer):
     """
-    Formata exemplos do dataset para o formato de prompt Alpaca
-    
-    Esta função é aplicada a cada exemplo do dataset durante o treinamento.
-    Ela combina instruction, input e output em um único texto formatado
-    que o modelo aprenderá a gerar.
-    
-    Args:
-        examples: Batch de exemplos do dataset com campos:
-                  - instruction: Lista de instruções
-                  - input: Lista de inputs (contexto + pergunta)
-                  - output: Lista de outputs (respostas)
-                  
-    Returns:
-        Dicionário com campo "text" contendo prompts formatados
+    Formata exemplos do dataset para o formato de prompt ChatML
     """
-    instructions = examples["instruction"]
-    inputs = examples["input"]
-    outputs = examples["output"]
-    
-    texts = []
-    
-    # Processa cada exemplo no batch
-    for instruction, input_text, output in zip(instructions, inputs, outputs):
-        # Formata usando o template Alpaca médico
-        # Durante treinamento, incluímos a resposta (output)
-        text = get_medical_alpaca_prompt(instruction, input_text, output)
-        
-        # Adiciona token de fim de sequência (EOS)
-        # O modelo aprende a parar de gerar quando vê este token
-        # O tokenizer já tem o EOS token definido
-        texts.append(text)
-    
+    convos = examples["messages"]
+    texts = [tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=False) for convo in convos]
     return {"text": texts}
 
 
@@ -205,14 +179,18 @@ def load_model():
     print("-" * 80)
     
     # FastLanguageModel.from_pretrained carrega o modelo otimizado
-    # max_seq_length: Comprimento máximo de sequência suportada
-    # dtype: Tipo de dados (None = auto-detect)
-    # load_in_4bit: Carrega modelo quantizado em 4-bit
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_config['default_model'],
         max_seq_length=model_config['max_seq_length'],
         dtype=model_config['dtype'],
         load_in_4bit=model_config['load_in_4bit'],
+    )
+    
+    # Configura template ChatML
+    tokenizer = get_chat_template(
+        tokenizer,
+        chat_template="chatml",
+        mapping={"role": "role", "content": "content", "user": "user", "assistant": "assistant"},
     )
     
     print("✅ Modelo carregado com sucesso!")
@@ -283,7 +261,7 @@ def setup_lora(model):
 # ETAPA 7: PREPARAÇÃO DO DATASET PARA TREINAMENTO
 # ============================================================================
 
-def prepare_training_dataset(dataset):
+def prepare_training_dataset(dataset, tokenizer):
     """
     Prepara o dataset aplicando formatação de prompts
     
@@ -302,7 +280,7 @@ def prepare_training_dataset(dataset):
     # batched=True processa em batches (mais eficiente)
     # remove_columns remove colunas originais, mantém apenas "text"
     formatted_dataset = dataset.map(
-        formatting_prompts_func,
+        lambda x: formatting_prompts_func(x, tokenizer),
         batched=True,
         remove_columns=dataset.column_names
     )
@@ -457,8 +435,6 @@ def test_model(model, tokenizer, example_instruction, example_input):
     Args:
         model: Modelo treinado
         tokenizer: Tokenizer
-        example_instruction: Instrução de exemplo
-        example_input: Input de exemplo (contexto + pergunta)
     """
     print("\n" + "=" * 80)
     print("TESTANDO MODELO TREINADO")
@@ -467,16 +443,23 @@ def test_model(model, tokenizer, example_instruction, example_input):
     # Prepara modelo para inferência (otimizações)
     FastLanguageModel.for_inference(model)
     
-    # Formata prompt (sem resposta, pois queremos que o modelo gere)
-    prompt = get_medical_alpaca_prompt(example_instruction, example_input, "")
+    messages = [
+        {"role": "system", "content": "Responda à pergunta baseando-se nos contextos fornecidos."},
+        {"role": "user", "content": "Contexto: Programmed cell death (PCD) is the regulated death of cells.\nPergunta: Do mitochondria play a role in remodelling plant leaves during PCD?"},
+    ]
     
-    # Tokeniza o prompt
-    inputs = tokenizer([prompt], return_tensors="pt").to("cuda")
+    # Formata usando chat template
+    inputs = tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=True,
+        return_tensors="pt",
+    ).to("cuda")
     
     # Gera resposta
     inference_cfg = get_inference_config()
     outputs = model.generate(
-        **inputs,
+        input_ids=inputs,
         max_new_tokens=inference_cfg['max_new_tokens'],
         use_cache=inference_cfg['use_cache'],
     )
@@ -484,9 +467,9 @@ def test_model(model, tokenizer, example_instruction, example_input):
     # Decodifica tokens para texto
     generated_text = tokenizer.batch_decode(outputs)[0]
     
-    print("Prompt de entrada:")
+    print("Messages de entrada:")
     print("-" * 80)
-    print(prompt[:500] + "...")
+    print(messages)
     print("-" * 80)
     print("\nResposta gerada:")
     print("-" * 80)
@@ -513,7 +496,7 @@ def main():
         model = setup_lora(model)
         
         # 4. Prepara dataset
-        train_dataset = prepare_training_dataset(dataset)
+        train_dataset = prepare_training_dataset(dataset, tokenizer)
         
         # 5. Cria trainer
         trainer = create_trainer(model, tokenizer, train_dataset)
@@ -525,9 +508,7 @@ def main():
         save_model(model, tokenizer, MODEL_OUTPUT_DIR)
         
         # 8. Testa modelo (exemplo)
-        example_instruction = get_instruction_only()
-        example_input = "Contexto: Programmed cell death (PCD) is the regulated death of cells.\nPergunta: Do mitochondria play a role in remodelling plant leaves during PCD?"
-        test_model(model, tokenizer, example_instruction, example_input)
+        test_model(model, tokenizer)
         
         print("\n" + "=" * 80)
         print("✅ PIPELINE COMPLETO FINALIZADO COM SUCESSO!")

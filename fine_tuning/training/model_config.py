@@ -57,9 +57,8 @@ AVAILABLE_MODELS = [
     "unsloth/gemma-7b-bnb-4bit",
 ]
 
-# Modelo padrão recomendado
 # LLaMA 3 8B oferece bom equilíbrio entre qualidade e requisitos de memória
-DEFAULT_MODEL = "unsloth/llama-3-8b-bnb-4bit"
+DEFAULT_MODEL = "unsloth/llama-3-8b-Instruct-bnb-4bit"
 
 # ============================================================================
 # CONFIGURAÇÕES LoRA (Low-Rank Adaptation)

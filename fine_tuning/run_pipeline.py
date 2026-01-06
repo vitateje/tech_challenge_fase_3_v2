@@ -12,7 +12,7 @@ sys.path.append(str(Path(__file__).parent))
 
 from preprocessing.data_processor import process_full_pipeline
 from preprocessing.validate_data import validate_dataset, print_validation_report
-from preprocessing.format_dataset import format_medical_to_alpaca
+from preprocessing.format_to_chatml import format_medical_to_chatml
 
 
 def run_preprocessing():
@@ -82,7 +82,7 @@ def run_formatting():
     
     BASE_DIR = Path(__file__).parent
     input_file = BASE_DIR / 'medical_tuning_data.json'
-    output_file = BASE_DIR / 'formatted_medical_dataset.json'
+    output_file = BASE_DIR / 'formatted_medical_dataset.jsonl'
     
     if not input_file.exists():
         print(f"❌ Erro: Dataset não encontrado: {input_file}")
@@ -90,7 +90,7 @@ def run_formatting():
         sys.exit(1)
     
     try:
-        stats = format_medical_to_alpaca(str(input_file), str(output_file))
+        stats = format_medical_to_chatml(str(input_file), str(output_file))
         print()
         print("=" * 80)
         print("✅ FORMATAÇÃO CONCLUÍDA COM SUCESSO!")
@@ -115,7 +115,7 @@ def main():
     parser.add_argument(
         "--format",
         action="store_true",
-        help="Formata dataset para formato Alpaca"
+        help="Formata dataset para formato ChatML (JSONL)"
     )
     parser.add_argument(
         "--all",
@@ -141,7 +141,7 @@ def main():
         print("✅ PIPELINE COMPLETO FINALIZADO!")
         print("=" * 80)
         print("\n📌 Próximos passos:")
-        print("   1. Revise o dataset formatado: formatted_medical_dataset.json")
+        print("    1. Revise o dataset formatado: formatted_medical_dataset.jsonl")
         print("   2. Execute o fine-tuning:")
         print("      - Notebook: jupyter notebook training/finetuning_medical.ipynb")
         print("      - Script: python training/finetuning_medical.py")
