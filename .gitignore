@@ -132,3 +132,6 @@ context/
 context-docs/
 
 # Nota: context-docs/ NÃO está ignorada - documentos de contexto devem ser versionados
+
+# Fine-tuning outputs
+fine-tuning/outputs/
