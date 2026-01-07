@@ -179,10 +179,11 @@ def format_context_for_llm(results: List[Dict[str, Any]]) -> str:
     for i, result in enumerate(results, 1):
         text = result.get("text", "")
         article_id = result.get("article_id", "")
+        source = result.get("metadata", {}).get("source", "N/A")
         score = result.get("score", 0.0)
         
         context_parts.append(
-            f"[Contexto {i}] (Artigo: {article_id}, Score: {score:.3f})\n"
+            f"[Contexto {i}] (Fonte: {source}, Artigo: {article_id}, Score: {score:.3f})\n"
             f"{text}\n"
         )
     

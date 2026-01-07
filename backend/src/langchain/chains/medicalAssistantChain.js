@@ -84,7 +84,10 @@ class MedicalAssistantChain {
                             .join('\n\n');
 
                         ragSources = ragResult.chunks.map(chunk => ({
-                            id: chunk.id,
+                            type: 'rag_document',
+                            reference: chunk.id,
+                            title: chunk.metadata && chunk.metadata.source ? `Fonte: ${chunk.metadata.source}` : 'Documento Pinecone',
+                            excerpt: chunk.text ? chunk.text.substring(0, 200) + '...' : '',
                             metadata: chunk.metadata || {}
                         }));
                     }
@@ -101,7 +104,7 @@ class MedicalAssistantChain {
             let usedFallback = false;
             const requestedProvider = providerName || langchainConfig.provider;
             const isBiobyIA = requestedProvider === 'biobyia';
-            
+
             try {
                 chatModel = await providerAdapter.getChatModel(requestedProvider);
             } catch (error) {
@@ -111,7 +114,7 @@ class MedicalAssistantChain {
                     console.error(`❌ BiobyIA não está disponível. Verifique se o modelo está instalado e o Ollama está rodando.`);
                     throw new Error(`BiobyIA não disponível: ${error.message}. Verifique a configuração do BIOBYIA_MODEL e se o Ollama está rodando.`);
                 }
-                
+
                 // Para outros providers (ollama), tenta usar Gemini como fallback se disponível
                 const providers = langchainConfig.getAvailableProviders();
                 if (providers.gemini && providers.gemini.apiKey) {
@@ -137,7 +140,7 @@ class MedicalAssistantChain {
 
             const currentProvider = usedFallback ? 'gemini' : requestedProvider;
             console.log(`🤖 Generating response with provider: ${currentProvider}${usedFallback ? ' (fallback)' : ''} ...`);
-            
+
             // Build variables object with proper mapping for each query type
             const variables = {
                 rag_context: ragContext,
@@ -165,14 +168,14 @@ class MedicalAssistantChain {
                     console.error(`💡 Verifique se o Ollama está rodando: ollama serve`);
                     throw new Error(`BiobyIA falhou: ${error.message}. Verifique a configuração e se o modelo está disponível.`);
                 }
-                
+
                 // Para Ollama (não BiobyIA), tenta usar Gemini como fallback se disponível
                 if (currentProvider === 'ollama' && !usedFallback) {
                     const providers = langchainConfig.getAvailableProviders();
                     if (providers.gemini && providers.gemini.apiKey) {
                         console.warn(`⚠️ Erro ao executar com ${currentProvider}:`, error.message);
                         console.log('🔄 Tentando usar Gemini como fallback...');
-                        
+
                         try {
                             const fallbackModel = await providerAdapter.getChatModel('gemini');
                             const fallbackChain = new LLMChain({
@@ -180,7 +183,7 @@ class MedicalAssistantChain {
                                 prompt: promptTemplate,
                                 verbose: langchainConfig.chains.verbose
                             });
-                            
+
                             response = await fallbackChain.invoke(variables);
                             usedFallback = true;
                             console.log('✅ Fallback para Gemini executado com sucesso');
@@ -278,11 +281,11 @@ class MedicalAssistantChain {
         // Remove duplicate "Response:" markers
         cleaned = cleaned.replace(/###\s*Response:\s*/gi, '');
         cleaned = cleaned.replace(/Response:\s*/gi, '');
-        
+
         // Remove duplicate "Conclusion:" markers
         cleaned = cleaned.replace(/###\s*Conclusion:\s*/gi, '');
         cleaned = cleaned.replace(/Conclusion:\s*/gi, '');
-        
+
         // Remove duplicate "Comments:" markers
         cleaned = cleaned.replace(/###\s*Comments:\s*/gi, '');
         cleaned = cleaned.replace(/Comments:\s*/gi, '');
@@ -319,9 +322,9 @@ class MedicalAssistantChain {
         cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
 
         // If response is too confusing (has too many statistical errors), add a note
-        const hasMalformedStats = /[\d·]+[\s\(\)\[\]−\-_0-9·,;]+[\d·]+/.test(cleaned) && 
-                                   cleaned.split(/RR|CI|95%/i).length > 5;
-        
+        const hasMalformedStats = /[\d·]+[\s\(\)\[\]−\-_0-9·,;]+[\d·]+/.test(cleaned) &&
+            cleaned.split(/RR|CI|95%/i).length > 5;
+
         if (hasMalformedStats && cleaned.length > 500) {
             cleaned = cleaned.substring(0, cleaned.indexOf('### Response:') || cleaned.length);
             if (cleaned.trim().length < 100) {

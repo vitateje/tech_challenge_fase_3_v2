@@ -294,8 +294,8 @@
                     <div class="message-text">{{ message.content }}</div>
                     <div v-if="message.sources && message.sources.length > 0" class="message-sources">
                       <strong>Fontes:</strong>
-                      <span v-for="(source, sidx) in message.sources" :key="sidx" class="source-tag">
-                        {{ source.reference }}
+                      <span v-for="(source, sidx) in message.sources" :key="sidx" class="source-tag" :title="source.excerpt">
+                        {{ source.title || source.reference }}
                       </span>
                     </div>
                     <div v-if="message.requiresReview" class="review-warning">
