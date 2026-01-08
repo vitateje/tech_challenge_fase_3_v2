@@ -291,12 +291,14 @@
                   :class="['message', message.role]"
                 >
                   <div class="message-content">
-                    <div class="message-text">{{ message.content }}</div>
+                    <div class="message-text" v-html="formatMessage(message.content)"></div>
                     <div v-if="message.sources && message.sources.length > 0" class="message-sources">
-                      <strong>Fontes:</strong>
-                      <span v-for="(source, sidx) in message.sources" :key="sidx" class="source-tag" :title="source.excerpt">
-                        {{ source.title || source.reference }}
-                      </span>
+                      <strong>📚 Fontes:</strong>
+                      <div class="sources-list">
+                        <span v-for="(source, sidx) in message.sources" :key="sidx" class="source-tag" :title="source.excerpt">
+                          {{ source.title || source.reference }}
+                        </span>
+                      </div>
                     </div>
                     <div v-if="message.requiresReview" class="review-warning">
                       ⚠️ Requer validação médica
@@ -603,6 +605,57 @@ export default {
       sidebarCollapsed.value = !sidebarCollapsed.value;
     }
 
+    function formatMessage(text) {
+      if (!text) return '';
+      
+      // Escape HTML to prevent XSS
+      let formatted = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      // Format headers (## Header)
+      formatted = formatted.replace(/^### (.+)$/gm, '<h4 class="msg-h4">$1</h4>');
+      formatted = formatted.replace(/^## (.+)$/gm, '<h3 class="msg-h3">$1</h3>');
+      formatted = formatted.replace(/^# (.+)$/gm, '<h2 class="msg-h2">$1</h2>');
+      
+      // Format bold (**text** or __text__)
+      formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      
+      // Format italic (*text* or _text_)
+      formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
+      
+      // Format numbered lists (1. item)
+      formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li class="numbered-item">$1</li>');
+      
+      // Format bullet lists (- item or * item)
+      formatted = formatted.replace(/^[-*]\s+(.+)$/gm, '<li class="bullet-item">$1</li>');
+      
+      // Wrap consecutive list items
+      formatted = formatted.replace(/(<li class="numbered-item">.*?<\/li>\s*)+/gs, '<ol class="msg-list">$&</ol>');
+      formatted = formatted.replace(/(<li class="bullet-item">.*?<\/li>\s*)+/gs, '<ul class="msg-list">$&</ul>');
+      
+      // Format code blocks (```code```)
+      formatted = formatted.replace(/```(.+?)```/gs, '<pre class="msg-code">$1</pre>');
+      
+      // Format inline code (`code`)
+      formatted = formatted.replace(/`(.+?)`/g, '<code class="msg-inline-code">$1</code>');
+      
+      // Format line breaks (double newline = paragraph)
+      formatted = formatted.replace(/\n\n/g, '</p><p class="msg-paragraph">');
+      formatted = '<p class="msg-paragraph">' + formatted + '</p>';
+      
+      // Format single line breaks
+      formatted = formatted.replace(/\n/g, '<br>');
+      
+      // Remove empty paragraphs
+      formatted = formatted.replace(/<p class="msg-paragraph"><\/p>/g, '');
+      
+      return formatted;
+    }
+
     onMounted(() => {
       if (checkAuth()) {
         loadInitialData();
@@ -638,7 +691,8 @@ export default {
       getRoleText,
       getGenderText,
       formatDate,
-      toggleSidebar
+      toggleSidebar,
+      formatMessage
     };
   }
 }
@@ -1182,7 +1236,26 @@ body {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
+  background: linear-gradient(to bottom, #F7FAFC 0%, #FFFFFF 100%);
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #F7FAFC;
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
 }
 
 .empty-chat {
@@ -1202,53 +1275,252 @@ body {
 }
 
 .message {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   display: flex;
+  animation: slideIn 0.3s ease-out;
 }
 
 .message.user {
   justify-content: flex-end;
 }
 
+.message.assistant {
+  justify-content: flex-start;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .message-content {
-  max-width: 70%;
-  padding: 12px 16px;
+  max-width: 75%;
+  padding: 16px 20px;
   border-radius: 12px;
+  line-height: 1.6;
 }
 
 .message.user .message-content {
-  background: #4299E1;
+  background: linear-gradient(135deg, #4299E1 0%, #3182CE 100%);
   color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
 }
 
 .message.assistant .message-content {
-  background: #F7FAFC;
+  background: #FFFFFF;
   color: #2D3748;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Message formatting styles */
+.message-text {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.msg-paragraph {
+  margin: 0 0 12px 0;
+  line-height: 1.7;
+}
+
+.msg-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.msg-h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2B6CB0;
+  margin: 16px 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.msg-h2:first-child {
+  margin-top: 0;
+}
+
+.msg-h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2C5282;
+  margin: 14px 0 10px 0;
+}
+
+.msg-h3:first-child {
+  margin-top: 0;
+}
+
+.msg-h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2D3748;
+  margin: 12px 0 8px 0;
+}
+
+.msg-h4:first-child {
+  margin-top: 0;
+}
+
+.message.user .msg-h2,
+.message.user .msg-h3,
+.message.user .msg-h4 {
+  color: #FFFFFF;
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.msg-list {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.msg-list li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.msg-list li:last-child {
+  margin-bottom: 0;
+}
+
+.numbered-item {
+  list-style-type: decimal;
+}
+
+.bullet-item {
+  list-style-type: disc;
+}
+
+.msg-code {
+  background: #1A202C;
+  color: #48BB78;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 12px 0;
+  border-left: 4px solid #4299E1;
+}
+
+.msg-inline-code {
+  background: #EDF2F7;
+  color: #E53E3E;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.message.user .msg-inline-code {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.message-text strong {
+  font-weight: 700;
+  color: #2B6CB0;
+}
+
+.message.user .message-text strong {
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message-text em {
+  font-style: italic;
+  color: #4A5568;
+}
+
+.message.user .message-text em {
+  color: #E6FFFA;
 }
 
 .message-sources {
-  margin-top: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #E2E8F0;
+  font-size: 13px;
+}
+
+.message.user .message-sources {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+.message-sources strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #4A5568;
   font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message.user .message-sources strong {
+  color: #E6FFFA;
+}
+
+.sources-list {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .source-tag {
-  padding: 2px 6px;
+  padding: 6px 12px;
   background: #EBF8FF;
   color: #2B6CB0;
-  border-radius: 4px;
-  font-family: monospace;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: help;
+  transition: all 0.2s ease;
+  border: 1px solid #BEE3F8;
+}
+
+.source-tag:hover {
+  background: #BEE3F8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+}
+
+.message.user .source-tag {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.message.user .source-tag:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .review-warning {
-  margin-top: 8px;
-  padding: 8px;
-  background: #FED7D7;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #FFF5F5;
   color: #742A2A;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border-left: 4px solid #FC8181;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message.user .review-warning {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFF5F5;
+  border-left-color: rgba(255, 255, 255, 0.5);
 }
 
 .typing-indicator {
