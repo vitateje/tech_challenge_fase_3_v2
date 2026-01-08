@@ -1,6 +1,7 @@
 const { LLMChain } = require('langchain/chains');
 const providerAdapter = require('../adapters/providerAdapter');
 const { getPatientContext } = require('../vectorstore/pineconePatientStore');
+const ragService = require('../../services/ragService');
 const medicalPrompts = require('../prompts/medical/medicalPrompts');
 const medicalGuardrails = require('../guardrails/medicalGuardrails');
 const langchainConfig = require('../config');
@@ -61,10 +62,24 @@ class MedicalAssistantChain {
                 ? this.formatPatientContext(patientContext)
                 : 'No specific patient context provided.';
 
-            // Step 2: Retrieve RAG context from Pinecone (patient-specific) when patientId is provided
-            let ragContext =
-                'No specific hospital protocols or patient documents available. Provide general medical knowledge with appropriate disclaimers.';
-            let ragSources = [];
+            // Step 2A: Retrieve general medical RAG context (BioByIA)
+            let generalMedicalContext = '';
+            let generalMedicalSources = [];
+            
+            try {
+                const medicalRAGResults = await ragService.queryRAGContext(question, 5);
+                if (medicalRAGResults && medicalRAGResults.length > 0) {
+                    generalMedicalContext = ragService.formatRAGContext(medicalRAGResults);
+                    generalMedicalSources = ragService.getSourcesInfo(medicalRAGResults);
+                    console.log(`✅ RAG Médico Geral: ${medicalRAGResults.length} fontes encontradas`);
+                }
+            } catch (ragError) {
+                console.warn('⚠️ Erro ao buscar contexto RAG médico geral:', ragError.message);
+            }
+
+            // Step 2B: Retrieve patient-specific RAG context (if patientId provided)
+            let patientDocumentsContext = '';
+            let patientDocumentsSources = [];
 
             if (patientId) {
                 try {
@@ -73,9 +88,9 @@ class MedicalAssistantChain {
                     });
 
                     if (ragResult && Array.isArray(ragResult.chunks) && ragResult.chunks.length > 0) {
-                        ragContext = ragResult.chunks
+                        patientDocumentsContext = ragResult.chunks
                             .map((chunk, index) => {
-                                const header = `Patient document ${index + 1}:`;
+                                const header = `Documento do Paciente ${index + 1}:`;
                                 const sourceInfo = chunk.metadata && chunk.metadata.source
                                     ? ` [source: ${chunk.metadata.source}]`
                                     : '';
@@ -83,17 +98,39 @@ class MedicalAssistantChain {
                             })
                             .join('\n\n');
 
-                        ragSources = ragResult.chunks.map(chunk => ({
-                            type: 'rag_document',
+                        patientDocumentsSources = ragResult.chunks.map(chunk => ({
+                            type: 'patient_document',
                             reference: chunk.id,
                             title: chunk.metadata && chunk.metadata.source ? `Fonte: ${chunk.metadata.source}` : 'Documento Pinecone',
                             excerpt: chunk.text ? chunk.text.substring(0, 200) + '...' : '',
                             metadata: chunk.metadata || {}
                         }));
+                        console.log(`✅ RAG Documentos Paciente: ${ragResult.chunks.length} documentos encontrados`);
                     }
                 } catch (ragError) {
-                    console.warn('⚠️ Failed to retrieve patient context from Pinecone:', ragError.message);
+                    console.warn('⚠️ Falha ao recuperar contexto do paciente do Pinecone:', ragError.message);
                 }
+            }
+
+            // Step 2C: Combine RAG contexts
+            let ragContext = '';
+            let ragSources = [];
+
+            if (generalMedicalContext || patientDocumentsContext) {
+                const contextParts = [];
+                
+                if (generalMedicalContext) {
+                    contextParts.push('=== CONTEXTO MÉDICO GERAL ===\n' + generalMedicalContext);
+                }
+                
+                if (patientDocumentsContext) {
+                    contextParts.push('=== DOCUMENTOS DO PACIENTE ===\n' + patientDocumentsContext);
+                }
+                
+                ragContext = contextParts.join('\n\n');
+                ragSources = [...generalMedicalSources, ...patientDocumentsSources];
+            } else {
+                ragContext = 'Nenhum protocolo hospitalar ou documento específico disponível. Forneça conhecimento médico geral com avisos apropriados.';
             }
 
             // Step 3: Get appropriate prompt template based on query type

@@ -6,10 +6,12 @@ Sistema de assistente virtual médico baseado em IA para hospitais, desenvolvido
 
 Assistente médico inteligente que auxilia equipes médicas com:
 - ✅ Suporte à decisão clínica baseado em protocolos hospitalares
+- ✅ **RAG (Retrieval-Augmented Generation)** com base de conhecimento médico
 - ✅ Sugestões de tratamento personalizadas por paciente
 - ✅ Fluxos automatizados (admissão, verificação de exames, tratamentos)
 - ✅ Trilha de auditoria completa para compliance
 - ✅ Guardrails de segurança e validação humana obrigatória
+- ✅ Rastreabilidade de fontes para explainability
 
 ## 🚀 Início Rápido
 
@@ -21,7 +23,9 @@ npm install
 
 # Configure .env
 cp .env.example .env
-# Adicione: GEMINI_API_KEY=sua_chave_aqui
+# Adicione as chaves necessárias:
+# - GEMINI_API_KEY=sua_chave_gemini
+# - PINECONE_API_KEY=sua_chave_pinecone (para RAG)
 ```
 
 ### 2. Popular Banco de Dados
@@ -43,6 +47,9 @@ npm run dev
 ```bash
 # Testar assistente médico
 node scripts/testMedicalAssistant.js
+
+# Testar RAG Service (Retrieval-Augmented Generation)
+node src/scripts/test-rag.js
 ```
 
 ### 5. Credenciais de Teste
@@ -106,12 +113,14 @@ GET    /api/auth/me           - Usuário atual
 
 ### Assistente Médico
 ```
-POST   /api/medical/query                    - Processar consulta médica
+POST   /api/medical/query                    - Processar consulta médica (com RAG)
 GET    /api/medical/history                  - Histórico de consultas
 GET    /api/medical/patient/:id/history      - Histórico por paciente
 GET    /api/medical/review-queue             - Fila de revisão
 POST   /api/medical/query/:id/feedback       - Enviar feedback
 POST   /api/medical/query/:id/review         - Marcar como revisado
+GET    /api/medical/rag/test                 - Testar conexão RAG
+POST   /api/medical/rag/search               - Buscar na base de conhecimento
 ```
 
 ### Pacientes
@@ -219,6 +228,7 @@ backend/src/
 │   ├── medicalAssistantService.js
 │   ├── patientService.js
 │   ├── workflowService.js
+│   ├── ragService.js                # RAG com Pinecone
 │   ├── authService.js
 │   └── userService.js
 │
@@ -247,9 +257,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # MongoDB
 MONGODB_URI=mongodb://localhost:27017/medical_assistant
 
-# RAG (Optional)
-USE_PINECONE=false
+# RAG - Retrieval-Augmented Generation (Recomendado)
 PINECONE_API_KEY=your_pinecone_key_here
+# Index: biobyia
+# Namespace: medical_qa
 
 # Server
 PORT=4000
@@ -272,6 +283,88 @@ NODE_ENV=development
 - Identificação de conteúdo de alto risco
 - Validação de menção a contraindicações
 
+## 🔍 RAG - Retrieval-Augmented Generation
+
+O sistema utiliza RAG para fundamentar as respostas médicas em documentos científicos reais, implementado conforme o notebook `demo.ipynb`.
+
+### Características
+
+**Base de Conhecimento Médico**
+- Index Pinecone: `biobyia`
+- Namespace: `medical_qa`
+- Embeddings: Google Generative AI (`text-embedding-004`)
+- Busca vetorial semântica
+
+**Contexto Duplo**
+- **Contexto Médico Geral**: Artigos científicos, guidelines, literatura médica
+- **Contexto do Paciente**: Documentos específicos do paciente (quando aplicável)
+
+**Rastreabilidade**
+- Todas as respostas incluem referências às fontes
+- IDs dos artigos médicos utilizados
+- Scores de similaridade para transparência
+- Metadata completo de cada fonte
+
+### Como Funciona
+
+1. **Pergunta do médico** → "Quais são os efeitos da aspirina?"
+2. **Embedding da query** → Vetor de 768 dimensões
+3. **Busca no Pinecone** → Top 5 documentos mais relevantes
+4. **Contexto enriquecido** → Documentos médicos + contexto do paciente
+5. **LLM gera resposta** → Fundamentada nas fontes encontradas
+6. **Resposta com fontes** → Rastreabilidade completa
+
+### Endpoints RAG
+
+```bash
+# Testar conexão com Pinecone
+GET /api/medical/rag/test
+
+# Buscar na base de conhecimento
+POST /api/medical/rag/search
+{
+  "query": "tratamento para hipertensão",
+  "topK": 5
+}
+
+# Query médica com RAG (endpoint principal)
+POST /api/medical/query
+{
+  "question": "Como tratar hipertensão em diabéticos?",
+  "patientId": "optional"
+}
+```
+
+### Exemplo de Resposta com RAG
+
+```json
+{
+  "answer": "Para hipertensão em diabéticos...",
+  "sources": [
+    {
+      "type": "medical_rag_document",
+      "reference": "PMC7891234",
+      "title": "Artigo Médico: PMC7891234",
+      "source": "PubMed",
+      "score": 0.92,
+      "excerpt": "Estudos mostram que..."
+    }
+  ],
+  "requiresReview": false
+}
+```
+
+### Testes
+
+```bash
+# Executar suite completa de testes do RAG
+node src/scripts/test-rag.js
+```
+
+### Documentação Completa
+
+Para mais detalhes técnicos, consulte: `backend/docs/RAG_INTEGRATION.md`
+
 ## 📚 Scripts Disponíveis
 
 ```bash
@@ -281,6 +374,9 @@ npm run dev                           # Iniciar servidor em modo desenvolvimento
 # Dados
 node scripts/seedMedicalData.js       # Popular banco com dados de exemplo
 node scripts/testMedicalAssistant.js  # Testar assistente médico
+
+# RAG (Retrieval-Augmented Generation)
+node src/scripts/test-rag.js          # Testar integração RAG com Pinecone
 
 # Produção
 npm start                             # Iniciar servidor em produção
