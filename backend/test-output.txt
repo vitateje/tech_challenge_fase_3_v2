@@ -1,0 +1,53 @@
+✅ Connected to MongoDB
+
+📋 Test 1: Simple Medical Query
+Question: "What is the protocol for hypertension management?"
+
+✅ LangChain Gemini ChatModel inicializado
+✅ LangChain Ollama ChatModel inicializado
+✅ LangChain BiobyIA ChatModel inicializado (bio-agent)
+📡 Base URL: http://localhost:11434
+⚙️  Timeout: 180s | Temperature: 0.7 | Max Tokens: 1000
+✅ Medical Assistant Chain initialized (Gemini only, no RAG)
+🤖 Generating response with provider: ollama ...
+🛡️ Validating response with guardrails...
+{"level":"info","source":"MedicalAssistantChain","message":"Processed medical query","meta":{"doctorId":null,"patientId":null,"queryType":"protocol_search","model":"ollama","latencyMs":154957,"ragSources":[],"explainabilityTrace":"As there is no specific available protocol, I will provide a general overview of hypertension management based on current evidence-based guidelines from the American Heart Association (AHA) and the European Society of Hypertension (ESH).\n\n**Most Relevant Protocol(s):**\nThe AHA/ESH Joint Guidelines for the Diagnosis and Management of Blood Pressure in Adults.\n\n**Summary:** The protocol aims to guide healthcare professionals in the diagnosis, prevention, and treatment of hypertension. It emphasizes the importance of a multidisciplinary approach and provides recommendations on lifestyle modifications, pharmacological therapy, and monitoring.\n\n**Key Steps or Recommendations:**\n\n1. **Lifestyle Modifications:**\n   - Weight reduction\n   - Sodium restriction (less than 100 mmol/d)\n   - Potassium-rich diet\n   - Regular physical exercise\n   - Stress management\n\n2. **Pharmacological Therapy:**\n   - Diuretics as first-line therapy for stage 1 hypertension\n   - ACE inhibitors or angiotensin II receptor blockers as preferred second-line therapy\n   - Calcium channel blockers and alpha-blockers as alternative therapies\n   - Thiazides and beta-blockers as fourth-line therapies\n\n3. **Monitoring:**\n   - Regular blood pressure measurements with a mercury sphygmomanometer in the clinic setting\n   - Home blood pressure monitoring for patients not achieving target blood pressures at the office visits\n\n**Important Warnings or Contraindications:**\n\n* Diuretics may cause hypokalemia and hyperuricemia, particularly in older adults.\n* ACE inhibitors or angiotensin II receptor blockers may be contraindicated in pregnancy (Category C or D).\n* Beta-blockers may exacerbate pre-existing bronchospasm or depression.\n\n**Additional Tips for Busy Medical Staff:**\n1. Always assess blood pressure in the standing position after a 5-minute rest period.\n2. Monitor patients' adherence to medication and lifestyle changes regularly.\n3. Regularly review patients' medical history, medications, and laboratory results for potential drug-related side effects or interactions that may impact their hypertension management.\n\nPlease note: This is not a substitute for specific hospital protocols, which should always be followed in clinical practice."},"timestamp":"2026-01-08T21:29:40.573Z"}
+Answer: As there is no specific available protocol, I will provide a general overview of hypertension management based on current evidence-based guidelines from the American Heart Association (AHA) and the European Society of Hypertension (ESH).
+
+**Most Relevant Protocol(s):**
+The AHA/ESH Joint Guidelines f...
+
+Sources found: 0
+Requires review: false
+Guardrails passed: true
+Response time: 154957ms
+
+---
+
+📋 Test 2: Query with Patient Context
+Patient: PAT-20251207-2VA2N
+Question: "What medications should we consider for this patient?"
+
+✅ Pinecone vector store inicializado com sucesso
+🤖 Generating response with provider: ollama ...
+🛡️ Validating response with guardrails...
+{"level":"info","source":"MedicalAssistantChain","message":"Processed medical query","meta":{"doctorId":null,"patientId":"6935f97aaed89046eae034bb","queryType":"treatment_suggestion","model":"ollama","latencyMs":162785,"ragSources":[],"explainabilityTrace":"SUGGESTION ONLY and requires validation by a licensed physician.\n\nConsidering the patient's age, active conditions, current medications, known allergies, hospital protocols, and potential drug interactions, here is a suggested treatment for hypertension:\n\n1. **Valsartan** (Angiotensin II Receptor Antagonist)\n\t* Rationale: Losartan is already being used in this patient, but Valsartan may be an alternative option considering the patient's known allergy to penicillin.\n\t* Dosage/Frequency: 80mg orally once daily\n\t* Expected outcomes: Control blood pressure and potential renoprotection\n\t* Contraindications to check: Hypersensitivity to Valsartan, history of angioedema or hereditary angiodema\n\t* Drug interactions to verify: Potassium-sparing diuretics (e.g., spironolactone), potassium supplements\n2. **Bisoprolol** (Beta blocker)\n\t* Rationale: Beta blockers can be effective antihypertensives and may have additional benefits in this patient with type 2 diabetes.\n\t* Dosage/Frequency: 5mg orally once daily, titrate up to 20mg as needed\n\t* Expected outcomes: Control blood pressure and reduce cardiovascular risk factors\n\t* Contraindications to check: History of bronchospasm or COPD, severe bradycardia\n\t* Drug interactions to verify: Verapamil (may increase hypotension), other beta blockers\n3. **Metoprolol succinate** (Beta blocker)\n\t* Rationale: Similar to Bisoprolol, Metoprolol may be an alternative beta blocker option.\n\t* Dosage/Frequency: 25mg orally once daily, titrate up to 200mg as needed\n\t* Expected outcomes: Control blood pressure and reduce cardiovascular risk factors\n\t* Contraindications to check: History of bronchospasm or COPD, severe bradycardia\n\t* Drug interactions to verify: Verapamil (may increase hypotension), other beta blockers\n\nREQUIRES PHYSICIAN VALIDATION"},"timestamp":"2026-01-08T21:32:23.470Z"}
+Answer: SUGGESTION ONLY and requires validation by a licensed physician.
+
+Considering the patient's age, active conditions, current medications, known allergies, hospital protocols, and potential drug interactions, here is a suggested treatment for hypertension:
+
+1. **Valsartan** (Angiotensin II Receptor An...
+
+Patient allergies considered: 1
+Requires review: false
+Response time: 162785ms
+
+---
+
+📋 Test 3: Database Check
+Active protocols: 2
+Active patients: 7
+
+✅ All tests completed successfully!
+
+👋 Database connection closed

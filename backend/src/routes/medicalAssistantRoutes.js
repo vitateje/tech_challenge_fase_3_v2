@@ -44,4 +44,16 @@ router.post('/query/:queryId/review',
     medicalAssistantController.markAsReviewed
 );
 
+// Test RAG connection
+router.get('/rag/test',
+    authMiddleware.protect,
+    medicalAssistantController.testRAGConnection
+);
+
+// Search medical knowledge base using RAG
+router.post('/rag/search',
+    authMiddleware.protect,
+    medicalAssistantController.searchRAG
+);
+
 module.exports = router;

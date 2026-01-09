@@ -1,4 +1,5 @@
 const medicalAssistantService = require('../services/medicalAssistantService');
+const ragService = require('../services/ragService');
 
 /**
  * Medical Assistant Controller
@@ -171,6 +172,64 @@ class MedicalAssistantController {
             console.error('Error in markAsReviewed:', error);
             res.status(500).json({
                 error: 'Failed to mark as reviewed',
+                message: error.message
+            });
+        }
+    }
+
+    /**
+     * GET /api/medical/rag/test
+     * Test RAG connection and functionality
+     */
+    async testRAGConnection(req, res) {
+        try {
+            const testResult = await ragService.testConnection();
+
+            res.json({
+                success: testResult.success,
+                data: testResult
+            });
+
+        } catch (error) {
+            console.error('Error in testRAGConnection:', error);
+            res.status(500).json({
+                error: 'Failed to test RAG connection',
+                message: error.message
+            });
+        }
+    }
+
+    /**
+     * POST /api/medical/rag/search
+     * Search medical knowledge base using RAG
+     */
+    async searchRAG(req, res) {
+        try {
+            const { query, topK = 5 } = req.body;
+
+            if (!query) {
+                return res.status(400).json({ error: 'Query is required' });
+            }
+
+            const results = await ragService.queryRAGContext(query, topK);
+            const formattedContext = ragService.formatRAGContext(results);
+            const sourcesInfo = ragService.getSourcesInfo(results);
+
+            res.json({
+                success: true,
+                data: {
+                    query,
+                    resultsCount: results.length,
+                    results,
+                    formattedContext,
+                    sources: sourcesInfo
+                }
+            });
+
+        } catch (error) {
+            console.error('Error in searchRAG:', error);
+            res.status(500).json({
+                error: 'Failed to search RAG',
                 message: error.message
             });
         }
