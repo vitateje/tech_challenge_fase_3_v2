@@ -35,9 +35,11 @@ class ProviderAdapter {
           apiKey: providerConfigs.gemini.apiKey
         });
         this.models.set('gemini', model);
-        console.log(`✅ LangChain Gemini ChatModel inicializado`);
+        console.log(`[OK] LangChain Gemini ChatModel inicializado`);
+        console.log(`   Modelo: ${providerConfigs.gemini.model}`);
+        console.log(`   Temperature: ${providerConfigs.gemini.temperature} | Max Tokens: ${providerConfigs.gemini.maxTokens}`);
       } catch (error) {
-        console.warn(`⚠️ Erro ao inicializar LangChain Gemini: ${error.message}`);
+        console.warn(`[AVISO] Erro ao inicializar LangChain Gemini: ${error.message}`);
       }
     }
 
@@ -55,9 +57,12 @@ class ProviderAdapter {
           }
         });
         this.models.set('ollama', model);
-        console.log(`✅ LangChain Ollama ChatModel inicializado`);
+        console.log(`[OK] LangChain Ollama ChatModel inicializado`);
+        console.log(`   Modelo: ${providerConfigs.ollama.model}`);
+        console.log(`   Base URL: ${providerConfigs.ollama.baseUrl}`);
+        console.log(`   Temperature: ${providerConfigs.ollama.temperature} | Max Tokens: ${providerConfigs.ollama.maxTokens}`);
       } catch (error) {
-        console.warn(`⚠️ Erro ao inicializar LangChain Ollama: ${error.message}`);
+        console.warn(`[AVISO] Erro ao inicializar LangChain Ollama: ${error.message}`);
       }
     }
 
@@ -75,13 +80,14 @@ class ProviderAdapter {
           }
         });
         this.models.set('biobyia', model);
-        console.log(`✅ LangChain BiobyIA ChatModel inicializado (${providerConfigs.biobyia.model})`);
-        console.log(`📡 Base URL: ${providerConfigs.biobyia.baseUrl}`);
-        console.log(`⚙️  Timeout: 180s | Temperature: ${providerConfigs.biobyia.temperature} | Max Tokens: ${providerConfigs.biobyia.maxTokens}`);
+        console.log(`[OK] LangChain BiobyIA ChatModel inicializado`);
+        console.log(`   Modelo: ${providerConfigs.biobyia.model}`);
+        console.log(`   Base URL: ${providerConfigs.biobyia.baseUrl}`);
+        console.log(`   Timeout: 180s | Temperature: ${providerConfigs.biobyia.temperature} | Max Tokens: ${providerConfigs.biobyia.maxTokens}`);
       } catch (error) {
-        console.error(`❌ Erro ao inicializar LangChain BiobyIA: ${error.message}`);
-        console.error(`💡 Verifique se o modelo ${providerConfigs.biobyia.model} está instalado: ollama pull ${providerConfigs.biobyia.model}`);
-        console.error(`💡 Verifique se o Ollama está rodando em ${providerConfigs.biobyia.baseUrl}`);
+        console.error(`[ERRO] Falha ao inicializar LangChain BiobyIA: ${error.message}`);
+        console.error(`   Verifique se o modelo ${providerConfigs.biobyia.model} está instalado: ollama pull ${providerConfigs.biobyia.model}`);
+        console.error(`   Verifique se o Ollama está rodando em ${providerConfigs.biobyia.baseUrl}`);
         // Não lança erro aqui - deixa para falhar quando tentar usar
       }
     }
