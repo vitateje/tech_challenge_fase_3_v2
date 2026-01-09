@@ -21,30 +21,31 @@ class OllamaProvider extends BaseProvider {
         const modelExists = models.some(m => m.name === this.model || m.model === this.model);
         
         if (!modelExists) {
-          console.warn(`⚠️ ${this.name}: Modelo "${this.model}" não encontrado nos modelos disponíveis`);
-          console.warn(`📋 Modelos disponíveis: ${models.map(m => m.name || m.model).join(', ')}`);
-          console.warn(`💡 Execute: ollama pull ${this.model}`);
+          console.warn(`[AVISO] ${this.name}: Modelo "${this.model}" não encontrado nos modelos disponíveis`);
+          console.warn(`   Modelos disponíveis: ${models.map(m => m.name || m.model).join(', ')}`);
+          console.warn(`   Execute: ollama pull ${this.model}`);
         } else {
-          console.log(`✅ Modelo "${this.model}" encontrado`);
+          console.log(`[OK] Modelo "${this.model}" encontrado no Ollama`);
         }
         
-        console.log(`🤖 ${this.name} inicializado (${this.model})`);
-        console.log(`📡 Servidor Ollama: ${this.baseUrl}`);
+        console.log(`[OK] ${this.name} Provider inicializado`);
+        console.log(`   Modelo: ${this.model}`);
+        console.log(`   Servidor: ${this.baseUrl}`);
         return true;
       } catch (error) {
         if (attempt < maxRetries) {
-          console.log(`⚠️ ${this.name}: Tentativa ${attempt}/${maxRetries} falhou, tentando novamente em ${retryDelay}ms...`);
+          console.log(`[AVISO] ${this.name}: Tentativa ${attempt}/${maxRetries} falhou, tentando novamente em ${retryDelay}ms...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
         
         if (error.code === 'ECONNREFUSED') {
-          console.warn(`⚠️ ${this.name}: Servidor Ollama não está rodando em ${this.baseUrl}`);
-          console.warn(`💡 Execute: ollama serve (ou inicie o Ollama manualmente)`);
+          console.warn(`[AVISO] ${this.name}: Servidor Ollama não está rodando em ${this.baseUrl}`);
+          console.warn(`   Execute: ollama serve (ou inicie o Ollama manualmente)`);
         } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-          console.warn(`⚠️ ${this.name}: Timeout ao conectar - servidor pode estar lento ou ocupado`);
+          console.warn(`[AVISO] ${this.name}: Timeout ao conectar - servidor pode estar lento ou ocupado`);
         } else {
-          console.warn(`⚠️ ${this.name}: Erro ao conectar - ${error.message}`);
+          console.warn(`[AVISO] ${this.name}: Erro ao conectar - ${error.message}`);
         }
         return false;
       }

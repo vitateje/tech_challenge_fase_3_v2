@@ -28,55 +28,55 @@ def run_preprocessing():
     
     # Verifica arquivo de entrada
     if not input_file.exists():
-        print(f"❌ Erro: Arquivo não encontrado: {input_file}")
+        print(f"[ERRO] Arquivo não encontrado: {input_file}")
         print("Por favor, verifique o caminho do arquivo.")
         sys.exit(1)
     
     # Etapa 1: Processamento
-    print("📦 ETAPA 1: Processamento de Dados")
+    print("ETAPA 1: Processamento de Dados")
     print("-" * 80)
     try:
         count = process_full_pipeline(str(input_file), str(output_file))
-        print(f"✅ Processamento concluído: {count} entradas processadas")
+        print(f"[OK] Processamento concluído: {count} entradas processadas")
     except Exception as e:
-        print(f"❌ Erro durante o processamento: {e}")
+        print(f"[ERRO] Durante o processamento: {e}")
         sys.exit(1)
     
     print()
     
     # Etapa 2: Validação
-    print("🔍 ETAPA 2: Validação dos Dados")
+    print("ETAPA 2: Validação dos Dados")
     print("-" * 80)
     try:
         stats = validate_dataset(str(output_file))
         print_validation_report(stats)
         
         if "error" in stats:
-            print("❌ Validação falhou!")
+            print("[ERRO] Validação falhou!")
             sys.exit(1)
         
         # Verifica se há erros críticos
         if stats.get("entries_with_input", 0) < stats.get("total_entries", 0) * 0.95:
-            print("⚠️  Atenção: Menos de 95% das entradas têm campo 'input'")
+            print("[AVISO] Menos de 95% das entradas têm campo 'input'")
         
-        print("✅ Validação concluída!")
+        print("[OK] Validação concluída!")
     except Exception as e:
-        print(f"❌ Erro durante a validação: {e}")
+        print(f"[ERRO] Durante a validação: {e}")
         sys.exit(1)
     
     print()
     print("=" * 80)
-    print("✅ PRÉ-PROCESSAMENTO CONCLUÍDO COM SUCESSO!")
-    print(f"📄 Dataset pronto em: {output_file}")
+    print("PRÉ-PROCESSAMENTO CONCLUÍDO COM SUCESSO!")
+    print(f"Dataset pronto em: {output_file}")
     print("=" * 80)
     
     return output_file
 
 
 def run_formatting():
-    """Formata dataset para formato Alpaca"""
+    """Formata dataset para formato ChatML"""
     print("=" * 80)
-    print("FORMATAÇÃO PARA FORMATO ALPACA")
+    print("FORMATAÇÃO PARA FORMATO CHATML")
     print("=" * 80)
     print()
     
@@ -85,7 +85,7 @@ def run_formatting():
     output_file = BASE_DIR / 'formatted_medical_dataset.jsonl'
     
     if not input_file.exists():
-        print(f"❌ Erro: Dataset não encontrado: {input_file}")
+        print(f"[ERRO] Dataset não encontrado: {input_file}")
         print("Execute primeiro: python run_pipeline.py --preprocess")
         sys.exit(1)
     
@@ -93,12 +93,12 @@ def run_formatting():
         stats = format_medical_to_chatml(str(input_file), str(output_file))
         print()
         print("=" * 80)
-        print("✅ FORMATAÇÃO CONCLUÍDA COM SUCESSO!")
-        print(f"📄 Dataset formatado em: {output_file}")
+        print("FORMATAÇÃO CONCLUÍDA COM SUCESSO!")
+        print(f"Dataset formatado em: {output_file}")
         print("=" * 80)
         return output_file
     except Exception as e:
-        print(f"❌ Erro durante formatação: {e}")
+        print(f"[ERRO] Durante formatação: {e}")
         sys.exit(1)
 
 
@@ -138,13 +138,13 @@ def main():
     
     if args.all:
         print("\n" + "=" * 80)
-        print("✅ PIPELINE COMPLETO FINALIZADO!")
+        print("PIPELINE COMPLETO FINALIZADO!")
         print("=" * 80)
-        print("\n📌 Próximos passos:")
-        print("    1. Revise o dataset formatado: formatted_medical_dataset.jsonl")
-        print("   2. Execute o fine-tuning:")
-        print("      - Notebook: jupyter notebook training/finetuning_medical.ipynb")
-        print("      - Script: python training/finetuning_medical.py")
+        print("\nPróximos passos:")
+        print("  1. Revise o dataset formatado: formatted_medical_dataset.jsonl")
+        print("  2. Execute o fine-tuning:")
+        print("     - Notebook: jupyter notebook training/finetuning_medical.ipynb")
+        print("     - Script: python training/finetuning_medical.py")
         print("=" * 80)
 
 

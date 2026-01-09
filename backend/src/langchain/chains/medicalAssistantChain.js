@@ -145,22 +145,22 @@ class MedicalAssistantChain {
             try {
                 chatModel = await providerAdapter.getChatModel(requestedProvider);
             } catch (error) {
-                console.warn(`⚠️ Erro ao obter modelo ${requestedProvider}:`, error.message);
+                console.warn(`[AVISO] Erro ao obter modelo ${requestedProvider}:`, error.message);
                 // BiobyIA não deve usar fallback - deve funcionar ou falhar
                 if (isBiobyIA) {
-                    console.error(`❌ BiobyIA não está disponível. Verifique se o modelo está instalado e o Ollama está rodando.`);
+                    console.error(`[ERRO] BiobyIA não está disponível. Verifique se o modelo está instalado e o Ollama está rodando.`);
                     throw new Error(`BiobyIA não disponível: ${error.message}. Verifique a configuração do BIOBYIA_MODEL e se o Ollama está rodando.`);
                 }
 
                 // Para outros providers (ollama), tenta usar Gemini como fallback se disponível
                 const providers = langchainConfig.getAvailableProviders();
                 if (providers.gemini && providers.gemini.apiKey) {
-                    console.log('🔄 Tentando usar Gemini como fallback...');
+                    console.log('[INFO] Tentando usar Gemini como fallback...');
                     try {
                         chatModel = await providerAdapter.getChatModel('gemini');
                         usedFallback = true;
                     } catch (fallbackError) {
-                        console.error('❌ Erro ao usar fallback Gemini:', fallbackError.message);
+                        console.error('[ERRO] Falha ao usar fallback Gemini:', fallbackError.message);
                         throw error; // Lança o erro original
                     }
                 } else {
@@ -176,7 +176,12 @@ class MedicalAssistantChain {
             });
 
             const currentProvider = usedFallback ? 'gemini' : requestedProvider;
-            console.log(`🤖 Generating response with provider: ${currentProvider}${usedFallback ? ' (fallback)' : ''} ...`);
+            const providerConfig = langchainConfig.getAvailableProviders()[currentProvider];
+            const modelInfo = providerConfig ? providerConfig.model : 'unknown';
+            
+            console.log(`[INFO] Gerando resposta com LLM`);
+            console.log(`   Provider: ${currentProvider}${usedFallback ? ' (fallback)' : ''}`);
+            console.log(`   Modelo: ${modelInfo}`);
 
             // Build variables object with proper mapping for each query type
             const variables = {

@@ -1,21 +1,20 @@
-# Pipeline RAG para Dados Médicos com Pinecone
+# Pipeline RAG para Dados Médicos
 
-Sistema completo de ingestão e RAG (Retrieval-Augmented Generation) para dados médicos do dataset PubMedQA usando Pinecone como vector store.
+Sistema de ingestão e RAG (Retrieval-Augmented Generation) para dados médicos do PubMedQA usando Pinecone como vector store.
 
-## 📋 Visão Geral
+## Visão Geral
 
-Este pipeline processa dados médicos estruturados do arquivo `ori_pqal.json` e os ingere no Pinecone para permitir busca semântica e recuperação de contexto relevante para assistentes médicos baseados em IA.
+Pipeline que processa dados médicos e os ingere no Pinecone para busca semântica e recuperação de contexto relevante.
 
-### Características Principais
+### Características
 
-- ✅ **Processamento completo**: Carregamento, limpeza, anonimização e chunking de dados médicos
-- ✅ **Integração Pinecone**: Ingestão otimizada em lotes com retry logic
-- ✅ **Múltiplos Providers**: Suporte para Gemini e Ollama embeddings
-- ✅ **Modular**: Scripts Python reutilizáveis e notebooks Jupyter detalhados
-- ✅ **Conformidade**: Anonimização de dados sensíveis (LGPD/HIPAA)
-- ✅ **Documentação**: Notebooks com comentários detalhados em português
+- Processamento completo de dados médicos
+- Integração com Pinecone
+- Suporte para Gemini e Ollama embeddings
+- Scripts modulares e notebooks detalhados
+- Anonimização de dados (LGPD/HIPAA)
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 ```
 ori_pqal.json
@@ -35,106 +34,91 @@ Pinecone Index (biobyia)
 [RAG Query] → Busca semântica
 ```
 
-## 📁 Estrutura de Arquivos
+## Estrutura
 
 ```
 rag_medical/
-├── notebooks/                    # Notebooks Jupyter detalhados
+├── notebooks/                  # Jupyter notebooks
 │   ├── 01-load-and-explore-data.ipynb
 │   ├── 02-process-medical-data.ipynb
 │   ├── 03-embed-and-ingest-pinecone.ipynb
 │   └── 04-test-rag-query.ipynb
-├── scripts/                      # Scripts Python modulares
-│   ├── __init__.py
-│   ├── data_loader.py           # Carregamento de dados
-│   ├── data_processor.py        # Processamento e limpeza
-│   ├── text_splitter.py         # Divisão em chunks
-│   ├── embeddings_manager.py    # Gerenciamento de embeddings
-│   ├── pinecone_ingester.py     # Ingestão no Pinecone
-│   └── rag_query.py             # Queries RAG
-├── config/                       # Configurações
-│   ├── __init__.py
-│   └── settings.py              # Gerenciamento de configurações
-├── utils/                        # Utilitários
-│   ├── __init__.py
-│   └── anonymizer.py            # Anonimização de dados
-├── .env.example                  # Template de variáveis de ambiente
-├── requirements.txt              # Dependências Python
-└── README.md                     # Este arquivo
+├── scripts/                    # Scripts modulares
+│   ├── data_loader.py
+│   ├── data_processor.py
+│   ├── text_splitter.py
+│   ├── embeddings_manager.py
+│   ├── pinecone_ingester.py
+│   └── rag_query.py
+├── config/                     # Configurações
+│   └── settings.py
+├── utils/                      # Utilitários
+│   └── anonymizer.py
+├── .env.example
+├── requirements.txt
+└── README.md
 ```
 
-## 🚀 Instalação
+## Instalação
 
-### 1. Pré-requisitos
+### Pré-requisitos
 
-- Python 3.8 ou superior
-- Conta Pinecone (https://app.pinecone.io)
-- API Key do Gemini (opcional, mas recomendado) ou Ollama configurado
+- Python 3.8+
+- Conta Pinecone
+- API Key do Gemini ou Ollama
 
-### 2. Instalar Dependências
+### Setup
 
 ```bash
 cd rag_medical
+
+# Instalar dependências
 pip install -r requirements.txt
-```
 
-### 3. Configurar Variáveis de Ambiente
-
-Copie o arquivo `.env.example` para `.env` e preencha com suas credenciais:
-
-```bash
+# Configurar ambiente
 cp .env.example .env
+# Editar .env com suas credenciais
 ```
 
-Edite o arquivo `.env`:
+### Configuração (.env)
 
 ```env
-# Pinecone Configuration
-PINECONE_API_KEY=sua_chave_pinecone_aqui
+# Pinecone
+PINECONE_API_KEY=sua_chave
 PINECONE_INDEX_NAME=biobyia
 PINECONE_NAMESPACE=medical_qa
 
-# Embeddings Configuration (Gemini - RECOMENDADO)
-GEMINI_API_KEY=sua_chave_gemini_aqui
+# Embeddings (Gemini - recomendado)
+GEMINI_API_KEY=sua_chave
 EMBEDDING_MODEL=text-embedding-004
 
-# Data Configuration
+# Dados
 MEDICAL_DATA_PATH=../context/pubmedqa-master/data/ori_pqal.json
 CHUNK_SIZE=512
 CHUNK_OVERLAP=50
 ```
 
-### 4. Verificar Caminho dos Dados
+## Uso
 
-Certifique-se de que o arquivo `ori_pqal.json` está no caminho especificado em `MEDICAL_DATA_PATH`. O caminho padrão é relativo ao diretório `rag_medical/`.
+### Via Notebooks (recomendado)
 
-## 📖 Uso
+Execute os notebooks na ordem:
 
-### Execução via Notebooks Jupyter (Recomendado)
+```bash
+# 1. Carregar e explorar dados
+jupyter notebook notebooks/01-load-and-explore-data.ipynb
 
-Execute os notebooks na ordem numérica:
+# 2. Processar dados médicos
+jupyter notebook notebooks/02-process-medical-data.ipynb
 
-1. **01-load-and-explore-data.ipynb**
-   - Carrega e explora o dataset
-   - Valida estrutura dos dados
-   - Exibe estatísticas
+# 3. Gerar embeddings e ingerir
+jupyter notebook notebooks/03-embed-and-ingest-pinecone.ipynb
 
-2. **02-process-medical-data.ipynb**
-   - Processa e anonimiza dados
-   - Divide textos em chunks
-   - Valida qualidade
+# 4. Testar queries RAG
+jupyter notebook notebooks/04-test-rag-query.ipynb
+```
 
-3. **03-embed-and-ingest-pinecone.ipynb**
-   - Gera embeddings
-   - Ingesta dados no Pinecone
-   - Verifica ingestão
-
-4. **04-test-rag-query.ipynb**
-   - Testa queries RAG
-   - Valida recuperação
-   - Exemplos práticos
-
-### Execução via Scripts Python
+### Via Scripts Python
 
 ```python
 from scripts.data_loader import load_medical_dataset
@@ -144,71 +128,62 @@ from scripts.embeddings_manager import EmbeddingsManager
 from scripts.pinecone_ingester import PineconeIngester
 from config.settings import get_settings
 
-# Carrega configurações
 settings = get_settings()
 
-# 1. Carrega dados
+# Carregar dados
 raw_data = load_medical_dataset(settings.MEDICAL_DATA_PATH)
 
-# 2. Processa dados
+# Processar
 processed_entries = process_batch(raw_data, anonymize=True)
 
-# 3. Divide em chunks
+# Dividir em chunks
 text_splitter = create_text_splitter(
     chunk_size=settings.CHUNK_SIZE,
     chunk_overlap=settings.CHUNK_OVERLAP
 )
 chunks = text_splitter.split_batch(processed_entries)
 
-# 4. Ingesta no Pinecone
+# Ingerir no Pinecone
 embeddings_manager = EmbeddingsManager()
 ingester = PineconeIngester(embeddings_manager=embeddings_manager)
 stats = ingester.ingest_chunks(chunks)
 
-# 5. Query RAG
+# Query RAG
 from scripts.rag_query import query_medical_rag
 results = query_medical_rag("Do mitochondria play a role?", top_k=5)
 ```
 
-## 🔧 Configuração
+## Configuração Pinecone
 
-### Pinecone
-
-- **Índice**: `biobyia` (já criado)
-- **Dimensões**: 1024 (compatível com embeddings de 768 dims)
+- **Índice**: `biobyia`
+- **Dimensões**: 1024
 - **Métrica**: Cosine similarity
-- **Namespace**: `medical_qa` (opcional, para separar dados)
+- **Namespace**: `medical_qa`
 
-### Embeddings
+## Embeddings
 
-**Opção 1: Gemini (Recomendado)**
+### Opção 1: Gemini (recomendado)
 - Modelo: `text-embedding-004`
 - Dimensões: 768
-- API Key: Obtenha em https://makersuite.google.com/app/apikey
+- Rápido e eficiente
 
-**Opção 2: Ollama (Local)**
-- Modelo: `mxbai-embed-large` (1024 dims) ou outro compatível
+### Opção 2: Ollama (local)
+- Modelo: `mxbai-embed-large` (1024 dims)
+- Requer Ollama rodando localmente
 - Base URL: `http://localhost:11434`
-- Requer Ollama instalado e rodando localmente
 
-### Chunking
+## Metadados no Pinecone
 
-- **Chunk Size**: 512 caracteres (padrão)
-- **Chunk Overlap**: 50 caracteres (padrão)
-- Ajuste conforme necessário para otimizar recuperação
-
-## 📊 Metadados no Pinecone
-
-Cada documento no Pinecone contém:
+Cada documento contém:
 
 ```python
 {
     "id": "article_21645374_chunk_0",
-    "values": [0.123, -0.456, ...],  # Embedding vector
+    "values": [0.123, -0.456, ...],
     "metadata": {
         "article_id": "21645374",
-        "question": "Do mitochondria play a role?",
-        "meshes": "Mitochondria, Apoptosis, ...",
+        "question": "Do mitochondria...",
+        "meshes": "Mitochondria, Apoptosis",
         "year": "2011",
         "chunk_index": 0,
         "source": "pubmedqa",
@@ -218,7 +193,7 @@ Cada documento no Pinecone contém:
 }
 ```
 
-## 🔍 Queries RAG
+## Queries RAG
 
 ### Query Básica
 
@@ -247,92 +222,81 @@ results = query_medical_rag(
 from scripts.rag_query import format_context_for_llm
 
 context = format_context_for_llm(results)
-# Usa 'context' no prompt do LLM
+# Usar 'context' no prompt do LLM
 ```
 
-## 🐛 Troubleshooting
+## Performance
 
-### Erro: "PINECONE_API_KEY não configurada"
-- Verifique se o arquivo `.env` existe e contém `PINECONE_API_KEY`
-- Certifique-se de que o arquivo está no diretório `rag_medical/`
+### Tempos Estimados (10k entradas)
 
-### Erro: "Arquivo de dados não encontrado"
-- Verifique o caminho em `MEDICAL_DATA_PATH` no arquivo `.env`
-- O caminho é relativo ao diretório `rag_medical/`
-
-### Erro: "Nenhum provider de embeddings configurado"
-- Configure `GEMINI_API_KEY` ou `OLLAMA_BASE_URL` no arquivo `.env`
-- Para Ollama, certifique-se de que está rodando: `ollama serve`
-
-### Embeddings muito lentos
-- Use Gemini (mais rápido que Ollama)
-- Reduza `BATCH_SIZE` se houver rate limiting
-- Considere processar em paralelo (futura melhoria)
-
-### Ingestão falhando
-- Verifique créditos no Pinecone
-- Reduza `BATCH_SIZE` para evitar rate limiting
-- Verifique logs de erro para detalhes específicos
-
-## 📈 Performance
-
-### Tempos Estimados (Dataset ~10.000 entradas)
-
-- **Carregamento**: ~5 segundos
-- **Processamento**: ~30 segundos
-- **Chunking**: ~10 segundos
-- **Embeddings (Gemini)**: ~5-10 minutos
-- **Ingestão Pinecone**: ~10-15 minutos
-- **Total**: ~20-30 minutos
+| Etapa | Tempo |
+|-------|-------|
+| Carregamento | ~5s |
+| Processamento | ~30s |
+| Chunking | ~10s |
+| Embeddings (Gemini) | ~5-10min |
+| Ingestão Pinecone | ~10-15min |
+| **Total** | ~20-30min |
 
 ### Otimizações
 
-- Use Gemini embeddings (mais rápido)
-- Ajuste `BATCH_SIZE` conforme sua conexão
-- Processe em paralelo para datasets muito grandes
+- Usar Gemini embeddings (mais rápido)
+- Ajustar `BATCH_SIZE`
+- Processar em paralelo (datasets grandes)
 
-## 🔒 Segurança e Privacidade
+## Troubleshooting
 
-- **Anonimização**: Dados sensíveis são automaticamente anonimizados
-- **LGPD/HIPAA**: Conformidade com regulamentações de privacidade
-- **API Keys**: Nunca commite arquivos `.env` no Git
-- **Dados**: Use namespace no Pinecone para separar ambientes
+### PINECONE_API_KEY não configurada
+- Verificar arquivo `.env`
+- Confirmar que está no diretório `rag_medical/`
 
-## 📝 Decisões de Design
+### Arquivo de dados não encontrado
+- Verificar caminho em `MEDICAL_DATA_PATH`
+- Caminho é relativo ao diretório `rag_medical/`
 
-1. **Embeddings**: Gemini text-embedding-004 (768 dims) funciona bem com índice de 1024 dims devido à similaridade de cosseno
-2. **Chunking**: 512 caracteres com overlap de 50 preserva contexto médico
-3. **Namespace**: `medical_qa` separa dados médicos de outros dados
-4. **Metadados**: Estrutura rica permite filtragem e rastreabilidade
-5. **Modularidade**: Scripts independentes facilitam manutenção e testes
+### Nenhum provider de embeddings configurado
+- Configurar `GEMINI_API_KEY` ou `OLLAMA_BASE_URL`
+- Para Ollama: `ollama serve`
 
-## 🤝 Contribuindo
+### Embeddings lentos
+- Usar Gemini (mais rápido)
+- Reduzir `BATCH_SIZE`
 
-Para melhorias ou correções:
-1. Mantenha a estrutura modular
-2. Adicione comentários em português
-3. Atualize documentação
-4. Teste com dataset completo
+### Ingestão falhando
+- Verificar créditos no Pinecone
+- Reduzir `BATCH_SIZE`
+- Verificar logs de erro
 
-## 📄 Licença
+## Segurança
 
-Este projeto faz parte do sistema de assistente médico. Consulte a licença do projeto principal.
+- Anonimização automática de dados sensíveis
+- Conformidade LGPD/HIPAA
+- API Keys nunca no Git
+- Namespace separado por ambiente
 
-## 🙏 Agradecimentos
+## Integração com Backend
 
-- Dataset PubMedQA: https://pubmedqa.github.io/
-- Pinecone: https://www.pinecone.io/
-- LangChain: https://www.langchain.com/
-- Google Gemini: https://ai.google.dev/
+O backend utiliza este RAG através do `ragService.js`:
 
-## 📞 Suporte
+```javascript
+// backend/src/services/ragService.js
+const results = await ragService.queryRAGContext(query, topK);
+```
 
-Para dúvidas ou problemas:
-1. Verifique a seção Troubleshooting
-2. Consulte os notebooks para exemplos
-3. Revise os comentários nos scripts
+Consulte: `../backend/src/services/ragService.js`
+
+## Documentação Adicional
+
+Para visão geral completa do sistema, consulte: `../DOCUMENTATION.md`
+
+## Referências
+
+- [PubMedQA Dataset](https://pubmedqa.github.io/)
+- [Pinecone Documentation](https://docs.pinecone.io)
+- [LangChain RAG](https://python.langchain.com/docs/use_cases/question_answering/)
+- [Google Gemini](https://ai.google.dev/)
 
 ---
 
-**Desenvolvido para o sistema de assistente médico - Tech Challenge Fase 3**
-
+**Versão**: 2.0  
+**Tech Challenge Fase 3 - FIAP**
