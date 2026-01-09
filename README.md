@@ -1,19 +1,19 @@
-# Medical Virtual Assistant - Hospital AI System
+# Medical Virtual Assistant
 
 Sistema de assistente virtual médico baseado em IA para hospitais, desenvolvido com LangChain, Gemini LLM e MongoDB.
 
-## 🏥 Visão Geral
+## Visão Geral
 
 Assistente médico inteligente que auxilia equipes médicas com:
-- ✅ Suporte à decisão clínica baseado em protocolos hospitalares
-- ✅ **RAG (Retrieval-Augmented Generation)** com base de conhecimento médico
-- ✅ Sugestões de tratamento personalizadas por paciente
-- ✅ Fluxos automatizados (admissão, verificação de exames, tratamentos)
-- ✅ Trilha de auditoria completa para compliance
-- ✅ Guardrails de segurança e validação humana obrigatória
-- ✅ Rastreabilidade de fontes para explainability
+- Suporte à decisão clínica baseado em protocolos hospitalares
+- RAG (Retrieval-Augmented Generation) com base de conhecimento médico
+- Sugestões de tratamento personalizadas por paciente
+- Fluxos automatizados (admissão, verificação de exames, tratamentos)
+- Trilha de auditoria completa para compliance
+- Guardrails de segurança e validação humana obrigatória
+- Rastreabilidade de fontes para explainability
 
-## 🚀 Início Rápido
+## Início Rápido
 
 ### 1. Configuração
 
@@ -31,7 +31,6 @@ cp .env.example .env
 ### 2. Popular Banco de Dados
 
 ```bash
-# Criar dados de exemplo (2 pacientes, 2 protocolos, 2 médicos)
 node scripts/seedMedicalData.js
 ```
 
@@ -48,7 +47,7 @@ npm run dev
 # Testar assistente médico
 node scripts/testMedicalAssistant.js
 
-# Testar RAG Service (Retrieval-Augmented Generation)
+# Testar RAG Service
 node src/scripts/test-rag.js
 ```
 
@@ -57,21 +56,21 @@ node src/scripts/test-rag.js
 - **Médico**: `doctor@hospital.com` / `demo@123`
 - **Enfermeira**: `nurse@hospital.com` / `demo@123`
 
-## 📋 Funcionalidades
+## Funcionalidades
 
-### 🤖 Assistente Médico com IA
+### Assistente Médico com IA
 - **LLM**: Gemini Pro para processamento de linguagem natural
 - **RAG**: Busca semântica em protocolos hospitalares
 - **Guardrails**: Validação automática de segurança
 - **Auditoria**: Log completo de todas as interações
 
-### 👥 Gestão de Pacientes
-- Cadastro com anonimização automática (PAT-YYYYMMDD-XXXXX)
+### Gestão de Pacientes
+- Cadastro com anonimização automática
 - Histórico médico, alergias, medicações
 - Sinais vitais e exames
 - Busca e filtros
 
-### 🔄 Workflows Automatizados
+### Workflows Automatizados
 
 **1. Admissão de Paciente**
 - Cria registro do paciente
@@ -84,7 +83,7 @@ node src/scripts/test-rag.js
 - Busca protocolos relevantes
 - Gera sugestões de tratamento
 - Verifica contraindicações e interações
-- **Requer validação médica obrigatória**
+- Requer validação médica obrigatória
 
 **3. Verificação de Exames**
 - Lista exames pendentes e completados
@@ -92,17 +91,17 @@ node src/scripts/test-rag.js
 - Analisa resultados com IA
 - Gera alertas para equipe médica
 
-### 🛡️ Segurança
+### Segurança
 
-- ✅ Nunca prescreve diretamente (apenas sugere)
-- ✅ Sempre cita fontes (protocolos)
-- ✅ Inclui disclaimers obrigatórios
-- ✅ Verifica contraindicações e interações
-- ✅ Flagging automático para revisão humana
-- ✅ Trilha de auditoria completa
-- ✅ Anonimização de dados sensíveis
+- Nunca prescreve diretamente (apenas sugere)
+- Sempre cita fontes (protocolos)
+- Inclui disclaimers obrigatórios
+- Verifica contraindicações e interações
+- Flagging automático para revisão humana
+- Trilha de auditoria completa
+- Anonimização de dados sensíveis
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Autenticação
 ```
@@ -143,7 +142,7 @@ POST   /api/workflows/treatment-suggestion   - Sugestão de tratamento
 POST   /api/workflows/exam-verification      - Verificação de exames
 ```
 
-## 📊 Exemplo de Uso
+## Exemplos de Uso
 
 ### Consultar Protocolo
 
@@ -189,7 +188,7 @@ curl -X POST http://localhost:4000/api/workflows/patient-intake \
   }'
 ```
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 ### Modelos de Dados (MongoDB)
 
@@ -203,51 +202,33 @@ curl -X POST http://localhost:4000/api/workflows/patient-intake \
 ### Estrutura do Projeto
 
 ```
-backend/src/
-├── models/                          # MongoDB Models
-│   ├── Patient.js
-│   ├── MedicalProtocol.js
-│   ├── MedicalQuery.js
-│   ├── Exam.js
-│   ├── Treatment.js
-│   └── User.js
+tech_challenge_fase_3_v2/
+├── backend/                    # API REST com Node.js
+│   └── src/
+│       ├── langchain/         # Integração LangChain
+│       ├── services/          # Lógica de negócio
+│       ├── models/            # Modelos MongoDB
+│       └── routes/            # Endpoints API
 │
-├── langchain/                       # LangChain Integration
-│   ├── chains/
-│   │   └── medicalAssistantChain.js
-│   ├── prompts/medical/
-│   │   └── medicalPrompts.js
-│   ├── guardrails/
-│   │   └── medicalGuardrails.js
-│   └── workflows/
-│       ├── patientIntakeWorkflow.js
-│       ├── treatmentSuggestionWorkflow.js
-│       └── examVerificationWorkflow.js
+├── frontend/                   # Interface Vue.js
+│   └── src/
+│       ├── components/        # Componentes Vue
+│       └── config/            # Configurações
 │
-├── services/                        # Business Logic
-│   ├── medicalAssistantService.js
-│   ├── patientService.js
-│   ├── workflowService.js
-│   ├── ragService.js                # RAG com Pinecone
-│   ├── authService.js
-│   └── userService.js
+├── fine_tuning/               # Pipeline de fine-tuning
+│   ├── preprocessing/         # Processamento de dados
+│   ├── training/              # Scripts de treinamento
+│   └── inference/             # Testes do modelo
 │
-├── controllers/                     # HTTP Controllers
-│   ├── medicalAssistantController.js
-│   ├── patientController.js
-│   ├── workflowController.js
-│   ├── authController.js
-│   └── userController.js
+├── rag_medical/               # Pipeline RAG
+│   ├── scripts/               # Scripts modulares
+│   ├── notebooks/             # Jupyter notebooks
+│   └── config/                # Configurações
 │
-└── routes/                          # API Routes
-    ├── medicalAssistantRoutes.js
-    ├── patientRoutes.js
-    ├── workflowRoutes.js
-    ├── authRoutes.js
-    └── userRoutes.js
+└── DOCUMENTATION.md           # Documentação técnica completa
 ```
 
-## 🔧 Configuração (.env)
+## Configuração (.env)
 
 ```bash
 # LLM Configuration
@@ -257,35 +238,17 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # MongoDB
 MONGODB_URI=mongodb://localhost:27017/medical_assistant
 
-# RAG - Retrieval-Augmented Generation (Recomendado)
+# RAG - Retrieval-Augmented Generation
 PINECONE_API_KEY=your_pinecone_key_here
-# Index: biobyia
-# Namespace: medical_qa
 
 # Server
 PORT=4000
 NODE_ENV=development
 ```
 
-## 🧠 LangChain & IA
+## RAG - Retrieval-Augmented Generation
 
-### Prompts Especializados
-- `medicalAssistantPrompt` - Consultas gerais
-- `protocolSearchPrompt` - Busca de protocolos
-- `treatmentSuggestionPrompt` - Sugestões de tratamento
-- `examAnalysisPrompt` - Análise de exames
-- `drugInteractionPrompt` - Verificação de interações
-
-### Guardrails de Segurança
-- Detecção de prescrições diretas
-- Verificação de disclaimers
-- Checagem de citação de fontes
-- Identificação de conteúdo de alto risco
-- Validação de menção a contraindicações
-
-## 🔍 RAG - Retrieval-Augmented Generation
-
-O sistema utiliza RAG para fundamentar as respostas médicas em documentos científicos reais, implementado conforme o notebook `demo.ipynb`.
+O sistema utiliza RAG para fundamentar as respostas médicas em documentos científicos reais.
 
 ### Características
 
@@ -297,7 +260,7 @@ O sistema utiliza RAG para fundamentar as respostas médicas em documentos cient
 
 **Contexto Duplo**
 - **Contexto Médico Geral**: Artigos científicos, guidelines, literatura médica
-- **Contexto do Paciente**: Documentos específicos do paciente (quando aplicável)
+- **Contexto do Paciente**: Documentos específicos do paciente
 
 **Rastreabilidade**
 - Todas as respostas incluem referências às fontes
@@ -327,7 +290,7 @@ POST /api/medical/rag/search
   "topK": 5
 }
 
-# Query médica com RAG (endpoint principal)
+# Query médica com RAG
 POST /api/medical/query
 {
   "question": "Como tratar hipertensão em diabéticos?",
@@ -357,15 +320,10 @@ POST /api/medical/query
 ### Testes
 
 ```bash
-# Executar suite completa de testes do RAG
 node src/scripts/test-rag.js
 ```
 
-### Documentação Completa
-
-Para mais detalhes técnicos, consulte: `backend/docs/RAG_INTEGRATION.md`
-
-## 📚 Scripts Disponíveis
+## Scripts Disponíveis
 
 ```bash
 # Desenvolvimento
@@ -375,32 +333,40 @@ npm run dev                           # Iniciar servidor em modo desenvolvimento
 node scripts/seedMedicalData.js       # Popular banco com dados de exemplo
 node scripts/testMedicalAssistant.js  # Testar assistente médico
 
-# RAG (Retrieval-Augmented Generation)
-node src/scripts/test-rag.js          # Testar integração RAG com Pinecone
+# RAG
+node src/scripts/test-rag.js          # Testar integração RAG
 
 # Produção
 npm start                             # Iniciar servidor em produção
 ```
 
-## ⚠️ Avisos Importantes
+## Avisos Importantes
 
-> **ATENÇÃO**: Este é um sistema de **suporte à decisão clínica**. Todas as sugestões da IA devem ser validadas por profissionais médicos licenciados antes da implementação.
+**ATENÇÃO**: Este é um sistema de suporte à decisão clínica. Todas as sugestões da IA devem ser validadas por profissionais médicos licenciados antes da implementação.
 
-> **COMPLIANCE**: O sistema implementa guardrails de segurança, mas a responsabilidade final pelas decisões médicas é sempre do profissional de saúde.
+**COMPLIANCE**: O sistema implementa guardrails de segurança, mas a responsabilidade final pelas decisões médicas é sempre do profissional de saúde.
 
-> **DADOS**: Utilize apenas dados anonimizados ou sintéticos em ambientes de desenvolvimento/teste.
+**DADOS**: Utilize apenas dados anonimizados ou sintéticos em ambientes de desenvolvimento/teste.
 
-## 📖 Documentação Adicional
+## Documentação
 
-- Todos os arquivos incluem comentários detalhados
-- Modelos documentados com JSDoc
-- Workflows com explicação de cada etapa
-- Guardrails com regras de segurança explicadas
+### Guia de Navegação
+Consulte `NAVIGATION.md` para um guia completo de navegação da documentação.
 
-## 🤝 Contribuição
+### Documentação Técnica
+- **Arquitetura Completa**: `DOCUMENTATION.md`
+- **Fine-Tuning**: `fine_tuning/README.md`
+- **RAG Medical**: `rag_medical/README.md`
+- **Backend**: `backend/README.md`
+- **Frontend**: `frontend/README.md`
+
+### Histórico
+- **Cleanup Summary**: `CLEANUP_SUMMARY.md`
+
+## Contribuição
 
 Desenvolvido como parte do Tech Challenge Fase 3 - FIAP.
 
 ---
 
-**Medical Virtual Assistant** - Suporte inteligente para decisões clínicas 🏥🤖
+**Medical Virtual Assistant** - Suporte inteligente para decisões clínicas

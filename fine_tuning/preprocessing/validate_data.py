@@ -82,35 +82,35 @@ def print_validation_report(stats: Dict[str, Any]) -> None:
         stats: Estatísticas de validação
     """
     if "error" in stats:
-        print(f"❌ Erro: {stats['error']}")
+        print(f"[ERRO] {stats['error']}")
         return
     
     print("=" * 80)
     print("RELATÓRIO DE VALIDAÇÃO DO DATASET")
     print("=" * 80)
-    print(f"\n📊 Estatísticas Gerais:")
+    print(f"\nEstatísticas Gerais:")
     print(f"  Total de entradas: {stats['total_entries']}")
     print(f"  Entradas com ID: {stats['entries_with_id']}")
     print(f"  Entradas com input: {stats['entries_with_input']}")
     
-    print(f"\n📏 Estatísticas de Tamanho:")
+    print(f"\nEstatísticas de Tamanho:")
     print(f"  Tamanho médio do input: {stats['avg_input_length']:.0f} caracteres")
     print(f"  Tamanho mínimo: {stats['min_input_length']} caracteres")
     print(f"  Tamanho máximo: {stats['max_input_length']} caracteres")
     
-    print(f"\n✅ Componentes Presentes:")
+    print(f"\nComponentes Presentes:")
     print(f"  Entradas com contexto: {stats['entries_with_context']}")
     print(f"  Entradas com pergunta: {stats['entries_with_question']}")
     print(f"  Entradas com resposta: {stats['entries_with_answer']}")
     
     if stats['errors']:
-        print(f"\n⚠️  Erros encontrados: {len(stats['errors'])}")
-        for error in stats['errors'][:10]:  # Mostra apenas os primeiros 10
+        print(f"\n[AVISO] Erros encontrados: {len(stats['errors'])}")
+        for error in stats['errors'][:10]:
             print(f"  - {error}")
         if len(stats['errors']) > 10:
             print(f"  ... e mais {len(stats['errors']) - 10} erros")
     else:
-        print(f"\n✅ Nenhum erro encontrado!")
+        print(f"\n[OK] Nenhum erro encontrado!")
     
     print("=" * 80)
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     output_file = 'medical_tuning_data.json'
     
     if not Path(output_file).exists():
-        print(f"❌ Arquivo não encontrado: {output_file}")
+        print(f"[ERRO] Arquivo não encontrado: {output_file}")
         print("Execute primeiro o script data_processor.py ou o notebook prepare-medical-data.ipynb")
         exit(1)
     

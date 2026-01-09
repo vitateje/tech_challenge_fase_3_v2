@@ -103,7 +103,7 @@ def format_medical_to_chatml(
                 failed += 1
                 continue
     
-    print(f"✅ Formatação concluída!")
+    print(f"[OK] Formatação concluída!")
     print(f"   Entradas processadas com sucesso: {successful}/{len(data)}")
     print(f"   Arquivo salvo em: {output_file}")
     
